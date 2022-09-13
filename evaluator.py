@@ -6,6 +6,9 @@ class Mirror:
         self.angle = angle
         self.radius = radius
 
+    def __lt__(self, x):
+        return self.coord < x.coord
+
     def get_coord(self):
         return self.coord
 
@@ -16,10 +19,10 @@ class Mirror:
         return self.radius
 
     def get_matrix_sagittal(self):
-        return(np.matrix([[1, 0],[-2 * np.cos(np.pi / 180 * self.angle) / self.radius, 1]]))
+        return np.matrix([[1, 0],[-2 * np.cos(np.pi / 180 * self.angle) / self.radius, 1]])
 
     def get_matrix_tangential(self):
-        return(np.matrix([[1, 0],[-2 / np.cos(np.pi / 180 * self.angle) / self.radius, 1]]))
+        return np.matrix([[1, 0],[-2 / np.cos(np.pi / 180 * self.angle) / self.radius, 1]])
 
 
 class System:
@@ -27,10 +30,11 @@ class System:
         self.num_of_mirrors = num_of_mirrors
         self.elems = []
         for arg in args:
-            self.elems += [arg]
+            self.elems.append(arg)
+        self.elems.sort()
 
     def is_consistent(self):
-        return self.elems[0].get_angle() < 0.000000001 & self.elems[-1].get_angle() < 0.000000001
+        return self.elems[0].get_angle() < 0.000000001 and self.elems[-1].get_angle() < 0.000000001
 
     def st_matrix_sagittal(self):
         res = self.elems[0].get_matrix_sagittal()
@@ -47,3 +51,12 @@ class System:
         return res
 
 
+m1 = Mirror(0, 0, 10)
+m2 = Mirror(1, 45, 2)
+m3 = Mirror(1.5, 0, 1)
+
+Sys = System(3, m1, m2, m3)
+
+print(Sys.is_consistent())
+print(Sys.st_matrix_sagittal())
+print(Sys.st_matrix_tangential())
