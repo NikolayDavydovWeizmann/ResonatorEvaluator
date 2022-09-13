@@ -50,6 +50,14 @@ class System:
             res = np.matmul(self.elems[i].get_matrix_tangential(), res)
         return res
 
+    def is_g_stable_sagittal(self):
+        mx = self.st_matrix_sagittal()
+        return mx[0,0] * mx[1, 0] * mx[0, 1] * mx[1, 1] < 0
+
+    def is_g_stable_tangential(self):
+        mx = self.st_matrix_tangential()
+        return mx[0,0] * mx[1, 0] * mx[0, 1] * mx[1, 1] < 0
+
 
 m1 = Mirror(0, 0, 10)
 m2 = Mirror(1, 45, 2)
@@ -59,4 +67,6 @@ Sys = System(3, m1, m2, m3)
 
 print(Sys.is_consistent())
 print(Sys.st_matrix_sagittal())
+print(Sys.is_g_stable_sagittal())
 print(Sys.st_matrix_tangential())
+print(Sys.is_g_stable_tangential())
