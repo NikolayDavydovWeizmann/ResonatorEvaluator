@@ -5,7 +5,7 @@ class Mirror:
         self.coord = coord
         self.angle = angle
         self.radius = radius
-        self.terminate = (self.angle < 0.000000001)
+        self.terminating = (self.angle < 0.000000001)
 
     def __lt__(self, x):
         return self.coord < x.coord
@@ -25,6 +25,9 @@ class Mirror:
     def get_matrix_tangential(self):
         return np.matrix([[1, 0],[-1 / np.cos(np.pi / 180 * self.angle) / self.radius, 1]])
 
+    def is_terminating(self):
+        return self.terminating
+
 
 class System:
     def __init__ (self, num_of_mirrors, *args):
@@ -34,18 +37,28 @@ class System:
             self.elems.append(arg)
         self.elems.sort()
 
+    def is_consistent(self):
+        mrkr = 0
+        for i in range(self.num_of_mirrors):
+            mrkr += self.elems[i].is_terminating()
+        return (mrkr == 2 and self.elems[0].is_terminating() and self.elems[-1].is_terminating())
+
     def st_matrix_sagittal(self):
         res = self.elems[0].get_matrix_sagittal()
-        for i in range(1, self.num_of_mirrors):
+        for i in range(1, self.num_of_mirrors - 1):
             res = np.matmul(np.matrix([[1, (self.elems[i].get_coord() - self.elems[i - 1].get_coord())], [0, 1]]), res)
             res = np.matmul(self.elems[i].get_matrix_sagittal(), res)
+            res = np.matmul(self.elems[i].get_matrix_sagittal(), res)
+        res = np.matmul(self.elems[self.num_of_mirrors - 1].get_matrix_sagittal(), res)
         return res
 
     def st_matrix_tangential(self):
         res = self.elems[0].get_matrix_tangential()
-        for i in range(1, self.num_of_mirrors):
+        for i in range(1, self.num_of_mirrors - 1):
             res = np.matmul(np.matrix([[1, (self.elems[i].get_coord() - self.elems[i - 1].get_coord())], [0, 1]]), res)
             res = np.matmul(self.elems[i].get_matrix_tangential(), res)
+            res = np.matmul(self.elems[i].get_matrix_tangential(), res)
+        res = np.matmul(self.elems[self.num_of_mirrors - 1].get_matrix_tangential(), res)
         return res
 
     def is_g_stable_sagittal(self):
@@ -65,8 +78,8 @@ class System:
         return 2 * resonator_length / n_approx
 
 m1 = Mirror(0, 0, 10)
-m2 = Mirror(13, 45, 2)
-m3 = Mirror(17.5, 0, 1)
+m2 = Mirror(10, 45, 2)
+m3 = Mirror(15, 0, 1)
 
 Sys = System(3, m1, m2, m3)
 
