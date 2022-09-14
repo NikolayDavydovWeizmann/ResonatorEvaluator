@@ -1,5 +1,7 @@
 import numpy as np
 
+SPEED_OF_LIGHT = 299792458
+
 class Mirror:
     def __init__(self, coord, angle, radius):
         self.coord = coord
@@ -49,7 +51,8 @@ class System:
             res = np.matmul(np.matrix([[1, (self.elems[i].get_coord() - self.elems[i - 1].get_coord())], [0, 1]]), res)
             res = np.matmul(self.elems[i].get_matrix_sagittal(), res)
             res = np.matmul(self.elems[i].get_matrix_sagittal(), res)
-        res = np.matmul(self.elems[self.num_of_mirrors - 1].get_matrix_sagittal(), res)
+        res = np.matmul(np.matrix([[1, (self.elems[-1].get_coord() - self.elems[-2].get_coord())], [0, 1]]), res)
+        res = np.matmul(self.elems[-1].get_matrix_sagittal(), res)
         return res
 
     def st_matrix_tangential(self):
@@ -58,7 +61,8 @@ class System:
             res = np.matmul(np.matrix([[1, (self.elems[i].get_coord() - self.elems[i - 1].get_coord())], [0, 1]]), res)
             res = np.matmul(self.elems[i].get_matrix_tangential(), res)
             res = np.matmul(self.elems[i].get_matrix_tangential(), res)
-        res = np.matmul(self.elems[self.num_of_mirrors - 1].get_matrix_tangential(), res)
+        res = np.matmul(np.matrix([[1, (self.elems[-1].get_coord() - self.elems[-2].get_coord())], [0, 1]]), res)
+        res = np.matmul(self.elems[-1].get_matrix_tangential(), res)
         return res
 
     def is_g_stable_sagittal(self):
@@ -70,21 +74,36 @@ class System:
         return mx[0,0] * mx[1, 0] * mx[0, 1] * mx[1, 1] < 0
 
     def get_length(self):
-        return self.elems[-1].get_coord - self.elems[0].get_coord
+        return self.elems[-1].get_coord() - self.elems[0].get_coord()
 
     def first_lambda_approx(self, zero_lambda_approx):
         resonator_length = self.get_length()
         n_approx = np.around(resonator_length * 2 / zero_lambda_approx)
         return 2 * resonator_length / n_approx
 
-m1 = Mirror(0, 0, 10)
-m2 = Mirror(10, 45, 2)
-m3 = Mirror(15, 0, 1)
+    def transverse_split (self):
+        mx_sagittal = self.st_matrix_sagittal()
+        mx_tangential = self.st_matrix_tangential()
+        delta_phy = (np.arctan2(2 * np.sqrt(-1 * mx_sagittal[1, 0] * mx_sagittal[1, 1] * mx_sagittal[0, 0] * mx_sagittal[0, 1]), 
+                                (mx_sagittal[0, 0] * mx_sagittal[1, 1] + mx_sagittal[0, 1] * mx_sagittal[1, 0])) +
+                    np.arctan2(2 * np.sqrt(-1 * mx_tangential[1, 0] * mx_tangential[1, 1] * mx_tangential[0, 0] * mx_tangential[0, 1]), 
+                                (mx_tangential[0, 0] * mx_tangential[1, 1] + mx_tangential[0, 1] * mx_tangential[1, 0]))) / 2
+        return SPEED_OF_LIGHT / 2 / self.get_length() * delta_phy
 
-Sys = System(3, m1, m2, m3)
+    def longitude_split(self):
+        return np.pi * SPEED_OF_LIGHT / self.get_length()
+
+m1 = Mirror(0, 0, 1)
+m2 = Mirror(1.99, 0, 1)
+
+
+Sys = System(2, m1, m2)
 
 print(Sys.is_consistent())
 print(Sys.st_matrix_sagittal())
 print(Sys.is_g_stable_sagittal())
 print(Sys.st_matrix_tangential())
 print(Sys.is_g_stable_tangential())
+print(Sys.get_length())
+print(Sys.longitude_split())
+print(Sys.transverse_split())
