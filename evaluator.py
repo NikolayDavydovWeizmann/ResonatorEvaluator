@@ -106,7 +106,7 @@ class System:
             tmp_arc = patches.Arc(center, 2 * self.elems[i].get_radius(), 2 * self.elems[i].get_radius(), 0, clctd_angle - MIRROR_AMGLE_SIZE, clctd_angle + MIRROR_AMGLE_SIZE, color= 'blue')
             ax.add_patch(tmp_arc)
             clctd_angle += self.elems[i].get_angle()
-            d_position = -1 * np.array(self.elems[i + 1].get_coord() * np.array([np.cos(np.pi * clctd_angle / 180), np.sin(np.pi * clctd_angle / 180)]))
+            d_position = -1 * np.array((self.elems[i + 1].get_coord() - self.elems[i].get_coord()) * np.array([np.cos(np.pi * clctd_angle / 180), np.sin(np.pi * clctd_angle / 180)]))
             tmp_line = mlines.Line2D([position[0], position[0] + d_position[0]], [position[1], position[1] + d_position[1]])
             ax.add_line(tmp_line)
             position = position + d_position
@@ -122,11 +122,12 @@ class System:
         plt.show()
 
 
-m1 = Mirror(0, 0, 1)
-m2 = Mirror(1.99, 0, 1)
+m1 = Mirror(0, 0, 10)
+m2 = Mirror(10, 30, 2)
+m3 = Mirror(12, 0, 1)
 
 
-Sys = System(2, m1, m2)
+Sys = System(3, m1, m2, m3)
 
 print(Sys.is_consistent())
 print(Sys.st_matrix_sagittal())
