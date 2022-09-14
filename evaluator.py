@@ -76,11 +76,6 @@ class System:
     def get_length(self):
         return self.elems[-1].get_coord() - self.elems[0].get_coord()
 
-    def first_lambda_approx(self, zero_lambda_approx):
-        resonator_length = self.get_length()
-        n_approx = np.around(resonator_length * 2 / zero_lambda_approx)
-        return 2 * resonator_length / n_approx
-
     def transverse_split (self):
         mx_sagittal = self.st_matrix_sagittal()
         mx_tangential = self.st_matrix_tangential()
