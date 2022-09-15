@@ -6,6 +6,17 @@ import matplotlib.lines as mlines
 SPEED_OF_LIGHT = 299792458
 MIRROR_AMGLE_SIZE = 10
 
+def transrorm_waist(waist2, radius, lmbd, transform_mx):
+    res_waist2 = 0
+    res_radius = 0
+    if transform_mx[0, 1] < 0.000000001:
+        res_waist2 = transform_mx[0, 0] * waist2
+        res_radius = 1 / (transform_mx[1, 0] / transform_mx[0, 0] + transform_mx[1, 1] / transform_mx[0, 0] / radius)
+    else:
+        res_waist2 = waist2 * ((transform_mx[0, 0] + transform_mx[0, 1] / radius) ** 2 + (lmbd * transform_mx[0, 1] / np.pi / waist2) ** 2)
+        res_radius = transform_mx[0, 1] / (transform_mx[1, 1] - waist2 / res_waist2 * (transform_mx[0, 0] + transform_mx[0, 1] / radius))
+    return res_waist2, res_radius
+
 class Mirror:
     def __init__(self, coord, angle, radius):
         self.coord = coord
@@ -80,7 +91,7 @@ class System:
     def get_length(self):
         return self.elems[-1].get_coord() - self.elems[0].get_coord()
 
-    def transverse_split (self):
+    def transverse_split(self):
         mx_sagittal = self.st_matrix_sagittal()
         mx_tangential = self.st_matrix_tangential()
         delta_phy = (np.arctan2(2 * np.sqrt(-1 * mx_sagittal[1, 0] * mx_sagittal[1, 1] * mx_sagittal[0, 0] * mx_sagittal[0, 1]), 
@@ -121,13 +132,45 @@ class System:
         plt.axis('off')
         plt.show()
 
+    def fund_lambda_choice(self, zero_lambda_approx):
+        zero_omega_approx = 2 * np.pi * SPEED_OF_LIGHT / zero_lambda_approx
+        n_closest = np.around((zero_omega_approx - self.transverse_split()) / self.longitude_split())
+        return 2 * np.pi * SPEED_OF_LIGHT / (self.longitude_split() * n_closest + self.transverse_split())
 
-m1 = Mirror(0, 0, 10)
-m2 = Mirror(10, 30, 2)
-m3 = Mirror(12, 0, 1)
+    def waist_search(self, zero_lambda_approx):
+        using_lambda = self.fund_lambda_choice(zero_lambda_approx)
+        mx_tangential = self.st_matrix_tangential()
+        mx_sagittal = self.st_matrix_sagittal()
+        init_waists2 = np.array([using_lambda / np.pi * np.sqrt(-1 * mx_tangential[1, 1] * mx_tangential[0, 1] / mx_tangential[1, 0] / mx_tangential[0, 0]),
+                                using_lambda / np.pi * np.sqrt(-1 * mx_sagittal[1, 1] * mx_sagittal[0, 1] / mx_sagittal[1, 0] / mx_sagittal[0, 0])])
+        init_curv_radius = np.array([-1, -1]) * self.elems[0].get_radius()
+        waist = np.array([[[0, 0], [0, 0]]])
+        for i in range(self.num_of_mirrors - 1):
+            beta_tangential = (using_lambda * init_curv_radius[0] / np.pi / init_waists2[0]) ** 2
+            beta_sagittal = (using_lambda * init_curv_radius[1] / np.pi / init_waists2[1]) ** 2
+            waist = np.concatenate((waist, np.array([[[- init_curv_radius[0] / (1 + beta_tangential), beta_tangential * np.sqrt(init_waists2[0]) / (1 + beta_tangential)],
+                                                [- init_curv_radius[1] / (1 + beta_sagittal), beta_sagittal * np.sqrt(init_waists2[1]) / (1 + beta_sagittal)]]])))
+            transform_mx_tangential = np.matrix([[1, (self.elems[i + 1].get_coord() - self.elems[i].get_coord())], [0, 1]])
+            transform_mx_tangential = np.matmul(self.elems[i + 1].get_matrix_tangential(), transform_mx_tangential)
+            transform_mx_tangential = np.matmul(self.elems[i + 1].get_matrix_tangential(), transform_mx_tangential)
+            res_waist2, res_radius = transrorm_waist(init_waists2[0], init_curv_radius[0], using_lambda, transform_mx_tangential)
+            init_waists2[0] = res_waist2
+            init_curv_radius[0] = res_radius
+            transform_mx_sagittal = np.matrix([[1, (self.elems[i + 1].get_coord() - self.elems[i].get_coord())], [0, 1]])
+            transform_mx_sagittal = np.matmul(self.elems[i + 1].get_matrix_sagittal(), transform_mx_sagittal)
+            transform_mx_sagittal = np.matmul(self.elems[i + 1].get_matrix_sagittal(), transform_mx_sagittal)
+            res_waist2, res_radius = transrorm_waist(init_waists2[1], init_curv_radius[1], using_lambda, transform_mx_sagittal)
+            init_waists2[1] = res_waist2
+            init_curv_radius[1] = res_radius
+        return waist[1:]
+            
+            
+
+m1 = Mirror(0, 0, 0.005)
+m2 = Mirror(0.009, 0, 0.005)
 
 
-Sys = System(3, m1, m2, m3)
+Sys = System(2, m1, m2)
 
 print(Sys.is_consistent())
 print(Sys.st_matrix_sagittal())
@@ -137,4 +180,6 @@ print(Sys.is_g_stable_tangential())
 print(Sys.get_length())
 print(Sys.longitude_split())
 print(Sys.transverse_split())
+print(Sys.waist_search(0.000001064))
 Sys.system_scheme()
+
