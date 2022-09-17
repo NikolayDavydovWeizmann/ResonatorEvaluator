@@ -1,3 +1,4 @@
+from math import nan
 import numpy as np
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
@@ -22,6 +23,8 @@ class Mirror:
         self.coord = coord
         self.angle = angle
         self.radius = radius
+        self.z_central_coord = nan
+        self.x_central_coord = nan
         self.terminating = (self.angle < 0.000000001)
 
     def __lt__(self, x):
@@ -45,6 +48,12 @@ class Mirror:
     def is_terminating(self):
         return self.terminating
 
+    def set_central_coord(self, z_central_coord, x_central_coord):
+        self.x_central_coord = x_central_coord
+        self.z_central_coord = z_central_coord
+
+    def get_central_coord(self):
+        return np.array([self.z_central_coord, self.x_central_coord])
 
 class System:
     def __init__ (self, num_of_mirrors, *args):
@@ -53,6 +62,17 @@ class System:
         for arg in args:
             self.elems.append(arg)
         self.elems.sort()
+        tmp_coord = np.array([0, 0])
+        tmp_angle_rad = self.elems[0].get_angle() * np.pi / 180
+        self.elems[0].set_central_coord(np.cos(tmp_angle_rad) * self.elems[0].get_radius(), np.sin(tmp_angle_rad) * self.elems[0].get_radius())
+        tmp_diraction = np.array([1, 0])
+        for i in range(1, self.num_of_mirrors):
+            tmp_angle_rad = self.elems[i].get_angle() * np.pi / 180
+            tmp_coord = tmp_coord + (self.elems[i].get_coord() - self.elems[i - 1].get_coord()) * tmp_diraction
+            tmp_diraction = np.array([-1 * tmp_diraction[0] * np.cos(tmp_angle_rad) + tmp_diraction[1] * np.sin(tmp_angle_rad), -1 * (tmp_diraction[0] * np.sin(tmp_angle_rad) + tmp_diraction[1] * np.cos(tmp_angle_rad))])
+            tmp_center = tmp_coord + tmp_diraction * self.elems[i].get_radius()
+            tmp_diraction = np.array([tmp_diraction[0] * np.cos(tmp_angle_rad) - tmp_diraction[1] * np.sin(tmp_angle_rad), tmp_diraction[0] * np.sin(tmp_angle_rad) + tmp_diraction[1] * np.cos(tmp_angle_rad)])
+            self.elems[i].set_central_coord(tmp_center[0], tmp_center[1])
 
     def is_consistent(self):
         mrkr = 0
@@ -116,8 +136,12 @@ class System:
             clctd_angle += 180
             tmp_arc = patches.Arc(center, 2 * self.elems[i].get_radius(), 2 * self.elems[i].get_radius(), 0, clctd_angle - MIRROR_AMGLE_SIZE, clctd_angle + MIRROR_AMGLE_SIZE, color= 'blue')
             ax.add_patch(tmp_arc)
-            clctd_angle += self.elems[i].get_angle()
-            d_position = -1 * np.array((self.elems[i + 1].get_coord() - self.elems[i].get_coord()) * np.array([np.cos(np.pi * clctd_angle / 180), np.sin(np.pi * clctd_angle / 180)]))
+            if i == 0:
+                d_position = (self.elems[i + 1].get_coord() - self.elems[i].get_coord()) * np.array([1, 0])
+                clctd_angle -= self.elems[i].get_angle()
+            else:
+                d_position = -1 * (self.elems[i + 1].get_coord() - self.elems[i].get_coord()) * np.array([np.cos(np.pi * clctd_angle / 180), np.sin(np.pi * clctd_angle / 180)])
+                clctd_angle += self.elems[i].get_angle()
             tmp_line = mlines.Line2D([position[0], position[0] + d_position[0]], [position[1], position[1] + d_position[1]])
             ax.add_line(tmp_line)
             position = position + d_position
@@ -166,20 +190,12 @@ class System:
             
             
 
-m1 = Mirror(0, 0, 0.005)
+m1 = Mirror(0, 10, 0.005)
 m2 = Mirror(0.009, 0, 0.005)
 
 
 Sys = System(2, m1, m2)
 
 print(Sys.is_consistent())
-print(Sys.st_matrix_sagittal())
-print(Sys.is_g_stable_sagittal())
-print(Sys.st_matrix_tangential())
-print(Sys.is_g_stable_tangential())
-print(Sys.get_length())
-print(Sys.longitude_split())
-print(Sys.transverse_split())
-print(Sys.waist_search(0.000001064))
 Sys.system_scheme()
 
