@@ -22,7 +22,7 @@ def transrorm_waist(waist2, radius, lmbd, transform_mx):
     return res_waist2, res_radius
 
 def quadratic_solver(A, B, C):
-    if A < 0.000000001 and A > -0.000000001:
+    if np.abs(A) < 0.000000001:
         return np.array([-1 * C / B, nan])
     D = B * B - 4 * A * C
     if D >= 0:
@@ -57,7 +57,7 @@ class Mirror:
     def get_central_coord(self):
         return np.array([self.z_central_coord, self.x_central_coord])
 
-class System:
+class Resonator:
     def __init__ (self, num_of_mirrors, *args):
         self.num_of_mirrors = num_of_mirrors
         self.elems = []
@@ -273,23 +273,23 @@ m2 = Mirror(0.009, 30, 0.01)
 m3 = Mirror(0.267, 0, 0.25)
 
 
-Sys = System(3, m1, m2, m3)
+Res = Resonator(3, m1, m2, m3)
 
-print(Sys.is_consistent())
-print(Sys.is_g_stable_sagittal())
-print(Sys.is_g_stable_tangential())
-print(Sys.get_length())
-print(Sys.elems[-1].angle)
+print(Res.is_consistent())
+print(Res.is_g_stable_sagittal())
+print(Res.is_g_stable_tangential())
+print(Res.get_length())
+print(Res.elems[-1].angle)
 
-Sys.system_scheme()
+Res.system_scheme()
 
-Sys.realign()
+Res.realign()
 
 
-print(Sys.is_consistent())
-print(Sys.is_g_stable_sagittal())
-print(Sys.is_g_stable_tangential())
-print(Sys.get_length())
-print(Sys.elems[-1].angle)
+print(Res.is_consistent())
+print(Res.is_g_stable_sagittal())
+print(Res.is_g_stable_tangential())
+print(Res.get_length())
+print(Res.elems[-1].angle)
 
-Sys.system_scheme()
+Res.system_scheme()
