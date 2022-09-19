@@ -1,4 +1,3 @@
-from calendar import c
 from math import nan
 from math import isnan
 import numpy as np
@@ -177,12 +176,14 @@ class Resonator:
         init_waists2 = np.array([using_lambda / np.pi * np.sqrt(-1 * mx_tangential[1, 1] * mx_tangential[0, 1] / mx_tangential[1, 0] / mx_tangential[0, 0]),
                                 using_lambda / np.pi * np.sqrt(-1 * mx_sagittal[1, 1] * mx_sagittal[0, 1] / mx_sagittal[1, 0] / mx_sagittal[0, 0])])
         init_curv_radius = np.array([-1, -1]) * self.elems[0].radius
-        waist = np.array([[[0, 0], [0, 0]]])
+        waist = np.array([[[0, 0, 0], [0, 0, 0]]])
         for i in range(self.num_of_mirrors - 1):
             beta_tangential = (using_lambda * init_curv_radius[0] / np.pi / init_waists2[0]) ** 2
             beta_sagittal = (using_lambda * init_curv_radius[1] / np.pi / init_waists2[1]) ** 2
-            waist = np.concatenate((waist, np.array([[[- init_curv_radius[0] / (1 + beta_tangential), beta_tangential * np.sqrt(init_waists2[0]) / (1 + beta_tangential)],
-                                                [- init_curv_radius[1] / (1 + beta_sagittal), beta_sagittal * np.sqrt(init_waists2[1]) / (1 + beta_sagittal)]]])))
+            waist = np.concatenate((waist, np.array([[[- init_curv_radius[0] / (1 + beta_tangential), beta_tangential * np.sqrt(init_waists2[0]) / (1 + beta_tangential), 0],
+                                                [- init_curv_radius[1] / (1 + beta_sagittal), beta_sagittal * np.sqrt(init_waists2[1]) / (1 + beta_sagittal), 0]]])))
+            waist[i + 1, 0, 2] = using_lambda / np.pi / waist[i + 1, 0, 1]
+            waist[i + 1, 1, 2] = using_lambda / np.pi / waist[i + 1, 1, 1]
             transform_mx_tangential = np.matrix([[1, (self.elems[i + 1].coord - self.elems[i].coord)], [0, 1]])
             transform_mx_tangential = np.matmul(self.elems[i + 1].get_matrix_tangential(), transform_mx_tangential)
             transform_mx_tangential = np.matmul(self.elems[i + 1].get_matrix_tangential(), transform_mx_tangential)
@@ -195,7 +196,7 @@ class Resonator:
             res_waist2, res_radius = transrorm_waist(init_waists2[1], init_curv_radius[1], using_lambda, transform_mx_sagittal)
             init_waists2[1] = res_waist2
             init_curv_radius[1] = res_radius
-        return waist[1:]
+        return waist[1:]    #[waist coord along axis, waist, Numerical Aperture]
 
     def realign(self):
         while not self.is_consistent():
@@ -290,6 +291,6 @@ print(Res.is_consistent())
 print(Res.is_g_stable_sagittal())
 print(Res.is_g_stable_tangential())
 print(Res.get_length())
-print(Res.elems[-1].angle)
+print(Res.waist_search(1064 * 10 **-9))
 
 Res.system_scheme()
