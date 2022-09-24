@@ -215,7 +215,7 @@ class Resonator:
 
             term_radius = -1 * self.elems[-1].radius
 
-            x_central_term = self.elems[-1].radius * np.sin(np.pi / 180 * self.elems[-1].angle) / (r_transform_mx[1, 0] * term_radius + r_transform_mx[0, 0])
+            x_central_term = (-1) ** self.num_of_mirrors * self.elems[-1].radius * np.sin(np.pi / 180 * self.elems[-1].angle) / (r_transform_mx[1, 0] * term_radius + r_transform_mx[0, 0])
             new_radius = (r_transform_mx[1, 1] * term_radius + r_transform_mx[0, 1]) / (r_transform_mx[1, 0] * term_radius + r_transform_mx[0, 0])
             z_central_term = np.sqrt(new_radius ** 2 - x_central_term ** 2)
 
