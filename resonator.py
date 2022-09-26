@@ -7,7 +7,7 @@ import matplotlib.lines as mlines
 
 SPEED_OF_LIGHT = 299792458
 MIRROR_ANGLE_SIZE = 10
-ANGLE_ACCURACY = 10 ** -9
+ANGLE_ACCURACY = 10 ** -13
 
 def transrorm_waist(waist2, radius, lmbd, transform_mx):
     res_waist2 = 0
@@ -180,8 +180,8 @@ class Resonator:
         for i in range(self.num_of_mirrors - 1):
             beta_tangential = (using_lambda * init_curv_radius[0] / np.pi / init_waists2[0]) ** 2
             beta_sagittal = (using_lambda * init_curv_radius[1] / np.pi / init_waists2[1]) ** 2
-            waist = np.concatenate((waist, np.array([[[- init_curv_radius[0] / (1 + beta_tangential), beta_tangential * np.sqrt(init_waists2[0]) / (1 + beta_tangential), 0],
-                                                [- init_curv_radius[1] / (1 + beta_sagittal), beta_sagittal * np.sqrt(init_waists2[1]) / (1 + beta_sagittal), 0]]])))
+            waist = np.concatenate((waist, np.array([[[- init_curv_radius[0] / (1 + beta_tangential), np.sqrt(beta_tangential) * np.sqrt(init_waists2[0]) / np.sqrt(1 + beta_tangential), 0],
+                                                [- init_curv_radius[1] / (1 + beta_sagittal), np.sqrt(beta_sagittal) * np.sqrt(init_waists2[1]) / np.sqrt(1 + beta_sagittal), 0]]])))
             waist[i + 1, 0, 2] = using_lambda / np.pi / waist[i + 1, 0, 1]
             waist[i + 1, 1, 2] = using_lambda / np.pi / waist[i + 1, 1, 1]
             transform_mx_tangential = np.matrix([[1, (self.elems[i + 1].coord - self.elems[i].coord)], [0, 1]])
