@@ -2,10 +2,10 @@ import resonator as rs
 import numpy as np
 import matplotlib.pyplot as plt
 
-LENGTH_STEP = 0.0000002
+LENGTH_STEP = 4 * 10 ** -15
 NUMBER_OF_STEPS = 1000
 
-tmp_res = rs.Resonator(2, rs.Mirror(0, 0, 0.005), rs.Mirror(0.0091, 0, 0.005))
+tmp_res = rs.Resonator(2, rs.Mirror(0, 0, 0.005), rs.Mirror(0.00999956, 0, 0.005))
 init_split1 = tmp_res.longitude_split()
 init_split2 = tmp_res.transverse_split()
 fund_wave = tmp_res.fund_lambda_choice(1064 * 10 ** -9)
@@ -21,7 +21,7 @@ wave_length = np.zeros(NUMBER_OF_STEPS)
 na1 = np.zeros(NUMBER_OF_STEPS)
 for i in range(NUMBER_OF_STEPS):
     length_div[i] = (i - np.around(NUMBER_OF_STEPS / 2)) * LENGTH_STEP
-    tmp_res = rs.Resonator(2, rs.Mirror(0, 0, 0.005), rs.Mirror(0.0091 + length_div[i], 0, 0.005))
+    tmp_res = rs.Resonator(2, rs.Mirror(0, 0, 0.005), rs.Mirror(0.00999956 + length_div[i], 0, 0.005))
     tmp_res.realign()
     wave_length[i] = tmp_res.fund_lambda_choice(1064 * 10 ** -9) / fund_wave - 1
     stblty1[i] = tmp_res.is_g_stable_sagittal()
@@ -49,7 +49,7 @@ plt.xlabel("Length deviation")
 plt.ylabel("Relative deviation of FWL")
 plt.plot(length_div, wave_length)
 
-tmp_res = rs.Resonator(3, rs.Mirror(0, 0, 0.005), rs.Mirror(0.008, 30, 0.010), rs.Mirror(0.2535, 0, 0.250))
+tmp_res = rs.Resonator(3, rs.Mirror(0, 0, 0.005), rs.Mirror(0.0099999, 10, 0.010), rs.Mirror(0.300, 0, 0.595))
 init_split1 = tmp_res.longitude_split()
 init_split2 = tmp_res.transverse_split()
 fund_wave = tmp_res.fund_lambda_choice(1064 * 10 ** -9)
@@ -62,7 +62,7 @@ stblty2 = np.zeros(NUMBER_OF_STEPS)
 na2 = np.zeros(NUMBER_OF_STEPS)
 for i in range(NUMBER_OF_STEPS):
     length_div[i] = (i - np.around(NUMBER_OF_STEPS / 2)) * LENGTH_STEP
-    tmp_res = rs.Resonator(3, rs.Mirror(0, 0, 0.005), rs.Mirror(0.008 + length_div[i], 30, 0.010), rs.Mirror(0.2535 + length_div[i], 0, 0.250))
+    tmp_res = rs.Resonator(3, rs.Mirror(0, 0, 0.005), rs.Mirror(0.0099999 + length_div[i], 10, 0.010), rs.Mirror(0.300 + length_div[i], 0, 0.595))
     tmp_res.realign()
     wave_length[i] = tmp_res.fund_lambda_choice(1064 * 10 ** -9) / fund_wave - 1
     stblty1[i] = tmp_res.is_g_stable_sagittal()
@@ -95,7 +95,7 @@ plt.plot(length_div, wave_length)
 
 for i in range(NUMBER_OF_STEPS):
     length_div[i] = (i - np.around(NUMBER_OF_STEPS / 2)) * LENGTH_STEP
-    tmp_res = rs.Resonator(3, rs.Mirror(0, 0, 0.005), rs.Mirror(0.008 + length_div[i], 30, 0.010), rs.Mirror(0.2535 + length_div[i], 0, 0.250))
+    tmp_res = rs.Resonator(3, rs.Mirror(0, 0, 0.005), rs.Mirror(0.0099999 + length_div[i], 10, 0.010), rs.Mirror(0.300 + length_div[i], 0, 0.595))
     tmp_res.realign()
     wave_length[i] = tmp_res.fund_lambda_choice(1064 * 10 ** -9) / fund_wave - 1
     stblty1[i] = tmp_res.is_g_stable_sagittal()
