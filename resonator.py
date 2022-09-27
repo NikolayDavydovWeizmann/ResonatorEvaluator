@@ -199,7 +199,10 @@ class Resonator:
         return waist[1:]    #[waist coord along axis, waist, Numerical Aperture]
 
     def realign(self):
+        flag = True
+        rotation = 0
         while not self.is_consistent():
+
             r_transform_mx = np.matrix([[1, 0], [0, 1]])
             for i in range(1, self.num_of_mirrors - 1):
                 r_transform_mx = np.matmul(np.matrix([[1, self.elems[i].coord - self.elems[i - 1].coord], [0, 1]]), r_transform_mx)
@@ -223,6 +226,10 @@ class Resonator:
             direct = 1 / np.sqrt(direct[0] ** 2 + direct[1] ** 2) * direct
             opt_path = self.elems[0].radius
             start_coord = np.array([z_central_start, x_central_start])
+
+            if flag:
+                rotation = 180 / np.pi * np.arctan2(direct[1], direct[0])
+                flag = False
 
             for i in range(1, self.num_of_mirrors):
                 central_coord = self.elems[i].get_central_coord()
@@ -264,4 +271,5 @@ class Resonator:
                 self.elems[i].coord = opt_path
                 self.elems[i].angle = angle
             self.refresh()
+        return rotation
             
