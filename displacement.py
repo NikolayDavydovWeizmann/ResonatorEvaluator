@@ -2,7 +2,9 @@ import resonator as rs
 import numpy as np
 import matplotlib.pyplot as plt
 
-LENGTH_STEP = 4 * 10 ** -15
+plt.rcParams.update({'font.size': 15})
+
+LENGTH_STEP = 4 * 10 ** -15 / 1000
 NUMBER_OF_STEPS = 1000
 
 tmp_res = rs.Resonator(2, rs.Mirror(0, 0, 0.005), rs.Mirror(0.00999956, 0, 0.005))
@@ -46,11 +48,10 @@ plt.xlabel("Length deviation, mm")
 plt.ylabel("Relative deviation of TS")
 plt.plot(1000 * length_div, split2)
 """
-plt.figure(4)
-plt.title("Fundamental wave length (FWL)")
-plt.xlabel("Length deviation, mm")
-plt.ylabel("Relative deviation of FWL")
-plt.plot(1000 * length_div, wave_length)
+plt.figure(4, figsize= (6, 5))
+plt.xlabel("Length deviation, fm")
+plt.ylabel("Relative deviation of the wavelength")
+plt.plot(10 ** 15 * length_div, wave_length)
 """
 plt.figure(5)
 plt.title("Rotation of axis of a mode")
@@ -99,11 +100,10 @@ plt.xlabel("Length deviation, mm")
 plt.ylabel("Relative deviation of TS")
 plt.plot(1000 * length_div, split2)
 """
-plt.figure(9)
-plt.title("Fundamental wave length (FWL)")
-plt.xlabel("Length deviation, mm")
-plt.ylabel("Relative deviation of FWL")
-plt.plot(1000 * length_div, wave_length)
+plt.figure(9, figsize= (6, 5))
+plt.xlabel("Length deviation, fm")
+plt.ylabel("Relative deviation of the wavelength")
+plt.plot(10 ** 15 * length_div, wave_length)
 """
 plt.figure(10)
 plt.title("Rotation of axis of a mode")
@@ -141,11 +141,10 @@ plt.xlabel("Length deviation, mm")
 plt.ylabel("Relative deviation of TS")
 plt.plot(1000 * length_div, split2)
 """
-plt.figure(14)
-plt.title("Fundamental wave length (FWL)")
-plt.xlabel("Length deviation, mm")
-plt.ylabel("Relative deviation of FWL") 
-plt.plot(1000 * length_div, wave_length)
+plt.figure(14, figsize= (6, 5))
+plt.xlabel("Length deviation, fm")
+plt.ylabel("Relative deviation of the wavelength")
+plt.plot(10 ** 15 * length_div, wave_length)
 """
 plt.figure(15)
 plt.title("Rotation of axis of a mode")
