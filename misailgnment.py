@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 plt.rcParams.update({'font.size': 15})
 
-ANGLE_STEP = 4 * 180 / np.pi / 1000000 / 1000
+ANGLE_STEP = 4 / 1000000 / 1000
 NUMBER_OF_STEPS = 1000
 
 tmp_res = rs.Resonator(2, rs.Mirror(0, 0, 0.005), rs.Mirror(0.0099927, 0, 0.005))
@@ -58,7 +58,7 @@ plt.ylabel("Angle of axis rotation, m\N{DEGREE SIGN}")
 plt.plot(1000000 * angle, 1000 * rot)
 
 
-tmp_res = rs.Resonator(3, rs.Mirror(0, 0, 0.005), rs.Mirror(0.0099, 10, 0.010), rs.Mirror(0.1673, 0, 0.275))
+tmp_res = rs.Resonator(3, rs.Mirror(0, 0, 0.005), rs.Mirror(0.0099, 10 / 180 * np.pi, 0.010), rs.Mirror(0.1673, 0, 0.275))
 init_split1 = tmp_res.longitude_split()
 init_split2 = tmp_res.transverse_split()
 fund_wave = tmp_res.fund_lambda_choice(1064 * 10 ** -9)
@@ -71,7 +71,7 @@ stblty2 = np.zeros(NUMBER_OF_STEPS)
 na2 = np.zeros(NUMBER_OF_STEPS)
 for i in range(NUMBER_OF_STEPS):
     angle[i] = (i - np.around(NUMBER_OF_STEPS / 2)) * ANGLE_STEP
-    tmp_res = rs.Resonator(3, rs.Mirror(0, angle[i], 0.005), rs.Mirror(0.0099, 10, 0.010), rs.Mirror(0.1673, 0, 0.275))
+    tmp_res = rs.Resonator(3, rs.Mirror(0, angle[i], 0.005), rs.Mirror(0.0099, 10 / 180 * np.pi, 0.010), rs.Mirror(0.1673, 0, 0.275))
     rot[i] = tmp_res.realign()
     wave_length[i] = tmp_res.fund_lambda_choice(1064 * 10 ** -9) / fund_wave - 1
     stblty1[i] = tmp_res.is_g_stable_sagittal()
@@ -109,7 +109,7 @@ plt.plot(1000000 * angle, 1000 * rot)
 
 for i in range(NUMBER_OF_STEPS):
     angle[i] = (i - np.around(NUMBER_OF_STEPS / 2)) * ANGLE_STEP
-    tmp_res = rs.Resonator(3, rs.Mirror(0, 0, 0.005), rs.Mirror(0.0099, 10, 0.010), rs.Mirror(0.1673, angle[i], 0.275))
+    tmp_res = rs.Resonator(3, rs.Mirror(0, 0, 0.005), rs.Mirror(0.0099, 10 / 180 * np.pi, 0.010), rs.Mirror(0.1673, angle[i], 0.275))
     rot[i] = tmp_res.realign()
     wave_length[i] = tmp_res.fund_lambda_choice(1064 * 10 ** -9) / fund_wave - 1
     stblty1[i] = tmp_res.is_g_stable_sagittal()

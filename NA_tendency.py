@@ -24,7 +24,7 @@ for i in range(NUM_OF_LENGTH_STEPS):
         offset = i * LENGTH_STEP
         length_of_II_arm[indx] = MIN_LENGTH + offset
         radius_of_term_mirror[indx] = MIN_RADIUS + j * RADIUS_STEP
-        tmp_res = rs.Resonator(3, rs.Mirror(0, 0, 0.005), rs.Mirror(0.009999, 10, 0.010), rs.Mirror(MIN_LENGTH + offset, 0, radius_of_term_mirror[indx]))
+        tmp_res = rs.Resonator(3, rs.Mirror(0, 0, 0.005), rs.Mirror(0.009999, 10 / 180 * np.pi, 0.010), rs.Mirror(MIN_LENGTH + offset, 0, radius_of_term_mirror[indx]))
         if tmp_res.is_g_stable_sagittal() and tmp_res.is_g_stable_tangential():
             na1[indx] = tmp_res.waist_search(1064 * 10 ** -9)[0, 0, 2]
             na2[indx] = tmp_res.waist_search(1064 * 10 ** -9)[0, 1, 2]
