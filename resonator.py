@@ -1,5 +1,6 @@
 from math import nan
 from math import isnan
+from turtle import color
 import numpy as np
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
@@ -81,7 +82,6 @@ class Resonator:
             tmp_diraction = np.array([tmp_diraction[0] * np.cos(tmp_angle_rad) - tmp_diraction[1] * np.sin(tmp_angle_rad), tmp_diraction[0] * np.sin(tmp_angle_rad) + tmp_diraction[1] * np.cos(tmp_angle_rad)])
             self.elems[i].set_central_coord(tmp_center[0], tmp_center[1])
             self.elems[i].terminating = (np.abs(self.elems[i].angle) < ANGLE_ACCURACY)
-
 
     def is_consistent(self):
         mrkr = 0
@@ -273,4 +273,75 @@ class Resonator:
                 self.elems[i].angle = angle
             self.refresh()
         return rotation
-            
+    
+    def waist_scheme(self, zero_lambda_approx):
+        using_lambda = self.fund_lambda_choice(zero_lambda_approx)
+        waist = self.waist_search(zero_lambda_approx)
+
+        number_of_steps = 1000
+        
+        fig, ax = plt.subplots()
+
+        tmp_line = mlines.Line2D([0, 0], [1 / 3, -1 / 3])
+        ax.add_line(tmp_line)
+        tmp_line = mlines.Line2D([0, 0], [-2 / 3, -4 / 3])
+        ax.add_line(tmp_line)
+        length = self.get_length()
+        tmp_line = mlines.Line2D([length, length], [1 / 3, -1 / 3])
+        ax.add_line(tmp_line)
+        tmp_line = mlines.Line2D([length, length], [-2 / 3, -4 / 3])
+        ax.add_line(tmp_line)
+
+        start = 0
+        stop = self.elems[1].coord
+        step = (stop - start) / (number_of_steps - 1)
+        x_coords = np.arange(start, stop + step, step)
+        
+        x_0 = waist[0, 0, 0]
+        z_R_0 = waist[0, 0, 1] ** 2 * np.pi / using_lambda
+        upper_curv = waist[0, 0, 1] * np.sqrt(1 + ((x_coords - x_0) / z_R_0) ** 2)
+        lower_curv = -upper_curv
+        plt.plot(x_coords, upper_curv, color= 'r')
+        plt.plot(x_coords, lower_curv, color= 'r')
+
+        y_offset_1 = -1
+        x_1 = waist[0, 1, 0]
+        z_R_1 = waist[0, 1, 1] ** 2 * np.pi / using_lambda
+        upper_curv = waist[0, 1, 1] * np.sqrt(1 + ((x_coords - x_1) / z_R_1) ** 2)
+        lower_curv = -upper_curv
+        upper_curv = y_offset_1 + upper_curv
+        lower_curv = y_offset_1 + lower_curv
+        plt.plot(x_coords, upper_curv, color= 'r')
+        plt.plot(x_coords, lower_curv, color= 'r')
+
+        for i in range(1, self.num_of_mirrors - 1):
+            x_init = self.elems[i].coord
+            x_term = self.elems[i + 1].coord
+            tmp_line = mlines.Line2D([x_init, x_init], [1 / 3, -1 / 3])
+            ax.add_line(tmp_line)
+            tmp_line = mlines.Line2D([x_init, x_init], [-2 / 3, -4 / 3])
+            ax.add_line(tmp_line)
+
+            start = x_init
+            stop = x_term
+            step = (stop - start) / (number_of_steps - 1)
+            x_coords = np.arange(start, stop + step, step)
+        
+            x_0 = waist[i, 0, 0]
+            z_R_0 = waist[i, 0, 1] ** 2 * np.pi / using_lambda
+            upper_curv = waist[i, 0, 1] * np.sqrt(1 + ((x_coords - x_0 - x_init) / z_R_0) ** 2)
+            lower_curv = -upper_curv
+            plt.plot(x_coords, upper_curv, color= 'r')
+            plt.plot(x_coords, lower_curv, color= 'r')
+
+            x_1 = waist[i, 1, 0]
+            z_R_1 = waist[i, 1, 1] ** 2 * np.pi / using_lambda
+            upper_curv = waist[i, 1, 1] * np.sqrt(1 + ((x_coords - x_1 - x_init) / z_R_1) ** 2)
+            lower_curv = -upper_curv
+            upper_curv = y_offset_1 + upper_curv
+            lower_curv = y_offset_1 + lower_curv
+            plt.plot(x_coords, upper_curv, color= 'r')
+            plt.plot(x_coords, lower_curv, color= 'r')
+
+        plt.axis('off')
+        plt.show()  
