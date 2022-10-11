@@ -8,11 +8,12 @@ import matplotlib.lines as mlines
 SPEED_OF_LIGHT = 299792458
 MIRROR_ANGLE_SIZE = 10
 ANGLE_ACCURACY = 10 ** -13
+ZERO_ACCURACY = 10 ** -13
 
 def transrorm_waist(waist2, radius, lmbd, transform_mx):
     res_waist2 = 0
     res_radius = 0
-    if transform_mx[0, 1] < 0.000000001:
+    if transform_mx[0, 1] < ZERO_ACCURACY:
         res_waist2 = transform_mx[0, 0] * waist2
         res_radius = 1 / (transform_mx[1, 0] / transform_mx[0, 0] + transform_mx[1, 1] / transform_mx[0, 0] / radius)
     else:
@@ -21,7 +22,7 @@ def transrorm_waist(waist2, radius, lmbd, transform_mx):
     return res_waist2, res_radius
 
 def quadratic_solver(A, B, C):
-    if np.abs(A) < 0.000000001:
+    if np.abs(A) < ZERO_ACCURACY:
         return np.array([-1 * C / B, nan])
     D = B * B - 4 * A * C
     if D >= 0:
@@ -44,10 +45,10 @@ class Mirror:
         return self.coord < x.coord
 
     def get_matrix_sagittal(self):
-        return np.matrix([[1, 0],[-1 * np.cos(np.pi / 180 * self.angle) / self.radius, 1]])
+        return np.matrix([[1, 0],[-1 * np.cos(self.angle) / self.radius, 1]])
 
     def get_matrix_tangential(self):
-        return np.matrix([[1, 0],[-1 / np.cos(np.pi / 180 * self.angle) / self.radius, 1]])
+        return np.matrix([[1, 0],[-1 / np.cos(self.angle) / self.radius, 1]])
 
     def set_central_coord(self, z_central_coord, x_central_coord):
         self.x_central_coord = x_central_coord
@@ -68,12 +69,12 @@ class Resonator:
 
     def refresh(self):
         tmp_coord = np.array([0, 0])
-        tmp_angle_rad = self.elems[0].angle * np.pi / 180
+        tmp_angle_rad = self.elems[0].angle
         self.elems[0].set_central_coord(np.cos(tmp_angle_rad) * self.elems[0].radius, np.sin(tmp_angle_rad) * self.elems[0].radius)
         self.elems[0].terminating = (np.abs(self.elems[0].angle) < ANGLE_ACCURACY)
         tmp_diraction = np.array([1, 0])
         for i in range(1, self.num_of_mirrors):
-            tmp_angle_rad = self.elems[i].angle * np.pi / 180
+            tmp_angle_rad = self.elems[i].angle
             tmp_coord = tmp_coord + (self.elems[i].coord - self.elems[i - 1].coord) * tmp_diraction
             tmp_diraction = np.array([-1 * tmp_diraction[0] * np.cos(tmp_angle_rad) + tmp_diraction[1] * np.sin(tmp_angle_rad), -1 * (tmp_diraction[0] * np.sin(tmp_angle_rad) + tmp_diraction[1] * np.cos(tmp_angle_rad))])
             tmp_center = tmp_coord + tmp_diraction * self.elems[i].radius
@@ -110,11 +111,11 @@ class Resonator:
 
     def is_g_stable_sagittal(self):
         mx = self.st_matrix_sagittal()
-        return mx[0,0] * mx[1, 0] * mx[0, 1] * mx[1, 1] < 0
+        return mx[0,0] * mx[1, 0] * mx[0, 1] * mx[1, 1] < ZERO_ACCURACY
 
     def is_g_stable_tangential(self):
         mx = self.st_matrix_tangential()
-        return mx[0,0] * mx[1, 0] * mx[0, 1] * mx[1, 1] < 0
+        return mx[0,0] * mx[1, 0] * mx[0, 1] * mx[1, 1] < ZERO_ACCURACY
 
     def get_length(self):
         return self.elems[-1].coord - self.elems[0].coord
@@ -140,7 +141,7 @@ class Resonator:
 
         for i in range(self.num_of_mirrors - 1):
             clctd_angle += self.elems[i].angle
-            center = position + self.elems[i].radius * np.array([np.cos(clctd_angle * np.pi / 180), np.sin(clctd_angle * np.pi / 180)])
+            center = position + self.elems[i].radius * np.array([np.cos(clctd_angle), np.sin(clctd_angle)])
             clctd_angle += 180
             tmp_arc = patches.Arc(center, 2 * self.elems[i].radius, 2 * self.elems[i].radius, 0, clctd_angle - MIRROR_ANGLE_SIZE, clctd_angle + MIRROR_ANGLE_SIZE, color= 'blue')
             ax.add_patch(tmp_arc)
@@ -155,7 +156,7 @@ class Resonator:
             position = position + d_position
         
         clctd_angle += self.elems[-1].angle
-        center = position + self.elems[-1].radius * np.array([np.cos(clctd_angle * np.pi / 180), np.sin(clctd_angle * np.pi / 180)])
+        center = position + self.elems[-1].radius * np.array([np.cos(clctd_angle), np.sin(clctd_angle)])
         clctd_angle += 180
         tmp_arc = patches.Arc(center, 2 * self.elems[-1].radius, 2 * self.elems[-1].radius, 0, clctd_angle - MIRROR_ANGLE_SIZE, clctd_angle + MIRROR_ANGLE_SIZE, color= 'blue')
         ax.add_patch(tmp_arc)
@@ -210,15 +211,15 @@ class Resonator:
                 r_transform_mx = np.matmul(self.elems[i].get_matrix_tangential(), r_transform_mx)
             r_transform_mx = np.matmul(np.matrix([[1, (self.elems[-1].coord - self.elems[-2].coord)], [0, 1]]), r_transform_mx)
 
-            z_central_start = self.elems[0].radius * np.cos(np.pi / 180 * self.elems[0].angle)
-            x_central_start = self.elems[0].radius * np.sin(np.pi / 180 * self.elems[0].angle)
+            z_central_start = self.elems[0].radius * np.cos(self.elems[0].angle)
+            x_central_start = self.elems[0].radius * np.sin(self.elems[0].angle)
 
             self.elems[0].angle = 0
             self.elems[0].coord = 0
 
             term_radius = -1 * self.elems[-1].radius
 
-            x_central_term = (-1) ** self.num_of_mirrors * self.elems[-1].radius * np.sin(np.pi / 180 * self.elems[-1].angle) / (r_transform_mx[1, 0] * term_radius + r_transform_mx[0, 0])
+            x_central_term = (-1) ** self.num_of_mirrors * self.elems[-1].radius * np.sin(self.elems[-1].angle) / (r_transform_mx[1, 0] * term_radius + r_transform_mx[0, 0])
             new_radius = (r_transform_mx[1, 1] * term_radius + r_transform_mx[0, 1]) / (r_transform_mx[1, 0] * term_radius + r_transform_mx[0, 0])
             z_central_term = np.sqrt(new_radius ** 2 - x_central_term ** 2)
 
@@ -228,13 +229,13 @@ class Resonator:
             start_coord = np.array([z_central_start, x_central_start])
 
             if flag:
-                rotation = 180 / np.pi * np.arctan2(direct[1], direct[0])
+                rotation = np.arctan2(direct[1], direct[0])
                 flag = False
 
             for i in range(1, self.num_of_mirrors):
                 central_coord = self.elems[i].get_central_coord()
 
-                if np.abs(direct[1]) < 0.000000001:
+                if np.abs(direct[1]) < 10 ** -9:
                     x_solutions = np.array([start_coord[1], start_coord[1]])
                     if np.abs(x_solutions[0] - central_coord[1]) > self.elems[i].radius:
                         raise Exception("Missing mirror")
@@ -258,11 +259,11 @@ class Resonator:
 
                 if direct[0] * cntrl_direct[0, 0] + direct[1] * cntrl_direct[0, 1] < 0:
                     new_start_coord = np.array([z_solutions[0], x_solutions[0]])
-                    angle = 180 / np.pi * np.arctan2(direct[1] * cntrl_direct[0, 0] - direct[0] * cntrl_direct[0, 1], -1 * direct[0] * cntrl_direct[0, 0] - direct[1] * cntrl_direct[0, 1])
+                    angle = np.arctan2(direct[1] * cntrl_direct[0, 0] - direct[0] * cntrl_direct[0, 1], -1 * direct[0] * cntrl_direct[0, 0] - direct[1] * cntrl_direct[0, 1])
                     direct = direct - 2 * (direct[0] * cntrl_direct[0, 0] + direct[1] * cntrl_direct[0, 1]) * cntrl_direct[0]
                 else:
                     new_start_coord = np.array([z_solutions[1], x_solutions[1]])
-                    angle = 180 / np.pi * np.arctan2(direct[1] * cntrl_direct[1, 0] - direct[0] * cntrl_direct[1, 1], -1 * direct[0] * cntrl_direct[1, 0] - direct[1] * cntrl_direct[1, 1])
+                    angle = np.arctan2(direct[1] * cntrl_direct[1, 0] - direct[0] * cntrl_direct[1, 1], -1 * direct[0] * cntrl_direct[1, 0] - direct[1] * cntrl_direct[1, 1])
                     direct = direct - 2 * (direct[0] * cntrl_direct[1, 0] + direct[1] * cntrl_direct[1, 1]) * cntrl_direct[1]
 
                 d_start_coord = new_start_coord - start_coord
