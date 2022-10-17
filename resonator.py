@@ -8,6 +8,7 @@ SPEED_OF_LIGHT = 299792458
 MIRROR_ANGLE_SIZE = 10
 ANGLE_ACCURACY = 10 ** -13
 ZERO_ACCURACY = 10 ** -13
+number_of_plots_G = 0
 
 
 def transrorm_waist(waist2, radius, lmbd, transform_mx):
@@ -61,7 +62,6 @@ class Resonator:
     def __init__ (self, num_of_mirrors, *args):
         self.num_of_mirrors = num_of_mirrors
         self.elems = []
-        self.__number_of_plots = 0
         for arg in args:
             self.elems.append(arg)
         self.elems.sort()
@@ -280,37 +280,41 @@ class Resonator:
         number_of_steps = 10000
         y_offset_1 = -3
 
-        self.__number_of_plots += 1
-        
-        plt.figure(self.__number_of_plots)
-        fig, ax = plt.subplots()
+        global number_of_plots_G
+        number_of_plots_G += 1
+
+        plt.figure(number_of_plots_G)
+        ax = plt.gca()
 
         tmp_line = mlines.Line2D([0, 0], [1 / 3, -1 / 3])
-        ax.add_line(tmp_line)
-        tmp_line = mlines.Line2D([0, 0], [1 / 3 + y_offset_1, -1 / 3 + y_offset_1])
         ax.add_line(tmp_line)
         length = self.get_length()
         tmp_line = mlines.Line2D([length, length], [1, -1])
         ax.add_line(tmp_line)
-        tmp_line = mlines.Line2D([length, length], [-2, -4])
-        ax.add_line(tmp_line)
         tmp_line = mlines.Line2D([0, length], [0, 0], color= 'green')
         ax.add_line(tmp_line)
-        tmp_line = mlines.Line2D([0, length], [y_offset_1, y_offset_1], color= 'green')
+        tmp_line = mlines.Line2D([self.elems[0].radius, self.elems[0].radius - 0.05], [-1 / 6, -1 / 6], color= 'thistle')
+        ax.add_line(tmp_line)
+        tmp_line = mlines.Line2D([length - self.elems[-1].radius, length - self.elems[-1].radius + 0.05], [-1 / 6, -1 / 6], color= 'thistle')
         ax.add_line(tmp_line)
         tmp_line = mlines.Line2D([self.elems[0].radius - 0.05, self.elems[0].radius, self.elems[0].radius], [1 / 6, 1 / 6, -1 / 6], color= 'indigo')
         ax.add_line(tmp_line)
-        tmp_line = mlines.Line2D([self.elems[0].radius - 0.05, self.elems[0].radius, self.elems[0].radius], [1 / 6 + y_offset_1, 1 / 6 + y_offset_1, -1 / 6 + y_offset_1], color= 'indigo')
-        ax.add_line(tmp_line)
         tmp_line = mlines.Line2D([length - self.elems[-1].radius + 0.05, length - self.elems[-1].radius, length - self.elems[-1].radius], [1 / 6, 1 / 6, -1 / 6], color= 'indigo')
-        ax.add_line(tmp_line)
-        tmp_line = mlines.Line2D([length - self.elems[-1].radius + 0.05, length - self.elems[-1].radius, length - self.elems[-1].radius], [1 / 6 + y_offset_1, 1 / 6 + y_offset_1, -1 / 6 + y_offset_1], color= 'indigo')
         ax.add_line(tmp_line)
 
         start = 0
         stop = self.elems[1].coord
         step = (stop - start) / (number_of_steps - 1)
         x_coords = np.arange(start, stop + step, step)
+
+        x_1 = waist[0, 1, 0]
+        tmp_line = mlines.Line2D([x_1, x_1], [1 / 12, -1 / 12], color= 'lightcoral')
+        ax.add_line(tmp_line)
+        z_R_1 = waist[0, 1, 1] ** 2 * np.pi / using_lambda
+        upper_curv = waist[0, 1, 1] * np.sqrt(1 + ((x_coords - x_1) / z_R_1) ** 2)
+        lower_curv = -upper_curv
+        plt.plot(x_coords, upper_curv, color= 'lightcoral')
+        plt.plot(x_coords, lower_curv, color= 'lightcoral')
         
         x_0 = waist[0, 0, 0]
         tmp_line = mlines.Line2D([x_0, x_0], [1 / 12 , -1 / 12], color= 'red')
@@ -321,39 +325,35 @@ class Resonator:
         plt.plot(x_coords, upper_curv, color= 'r')
         plt.plot(x_coords, lower_curv, color= 'r')
 
-        x_1 = waist[0, 1, 0]
-        tmp_line = mlines.Line2D([x_1, x_1], [1 / 12 + y_offset_1, -1 / 12 + y_offset_1], color= 'red')
-        ax.add_line(tmp_line)
-        z_R_1 = waist[0, 1, 1] ** 2 * np.pi / using_lambda
-        upper_curv = waist[0, 1, 1] * np.sqrt(1 + ((x_coords - x_1) / z_R_1) ** 2)
-        lower_curv = -upper_curv
-        upper_curv = y_offset_1 + upper_curv
-        lower_curv = y_offset_1 + lower_curv
-        plt.plot(x_coords, upper_curv, color= 'r')
-        plt.plot(x_coords, lower_curv, color= 'r')
-
         for i in range(1, self.num_of_mirrors - 1):
             x_init = self.elems[i].coord
             x_term = self.elems[i + 1].coord
             tmp_line = mlines.Line2D([x_init, x_init], [1 / 3, -1 / 3])
             ax.add_line(tmp_line)
-            tmp_line = mlines.Line2D([x_init, x_init], [1 / 3 + y_offset_1, -1 / 3 + y_offset_1])
-            ax.add_line(tmp_line)
             focal_length_tg = self.elems[i].radius / 2 * np.cos(self.elems[i].angle)
             focal_length_sag = self.elems[i].radius / 2 / np.cos(self.elems[i].angle)
+            tmp_line = mlines.Line2D([x_init - focal_length_sag, x_init - focal_length_sag, x_init - focal_length_sag + 0.05], [1 / 6, -1 / 6, -1 / 6], color= 'thistle')
+            ax.add_line(tmp_line)
+            tmp_line = mlines.Line2D([x_init + focal_length_sag, x_init + focal_length_sag, x_init + focal_length_sag - 0.05], [1 / 6, -1 / 6, -1 / 6], color= 'thistle')
+            ax.add_line(tmp_line)
             tmp_line = mlines.Line2D([x_init - focal_length_tg + 0.05, x_init - focal_length_tg, x_init - focal_length_tg], [1 / 6, 1 / 6, -1 / 6], color= 'indigo')
             ax.add_line(tmp_line)
             tmp_line = mlines.Line2D([x_init + focal_length_tg - 0.05, x_init + focal_length_tg, x_init + focal_length_tg], [1 / 6, 1 / 6, -1 / 6], color= 'indigo')
             ax.add_line(tmp_line)
-            tmp_line = mlines.Line2D([x_init - focal_length_sag + 0.05, x_init - focal_length_sag, x_init - focal_length_sag], [1 / 6 + y_offset_1, 1 / 6 + y_offset_1, -1 / 6 + y_offset_1], color= 'indigo')
-            ax.add_line(tmp_line)
-            tmp_line = mlines.Line2D([x_init + focal_length_sag - 0.05, x_init + focal_length_sag, x_init + focal_length_sag], [1 / 6 + y_offset_1, 1 / 6 + y_offset_1, -1 / 6 + y_offset_1], color= 'indigo')
-            ax.add_line(tmp_line)
-
+            
             start = x_init
             stop = x_term
             step = (stop - start) / (number_of_steps - 1)
             x_coords = np.arange(start, stop + step, step)
+
+            x_1 = waist[i, 1, 0]
+            tmp_line = mlines.Line2D([x_1 + x_init, x_1 + x_init], [1 / 12, -1 / 12], color= 'lightcoral')
+            ax.add_line(tmp_line)
+            z_R_1 = waist[i, 1, 1] ** 2 * np.pi / using_lambda
+            upper_curv = waist[i, 1, 1] * np.sqrt(1 + ((x_coords - x_1 - x_init) / z_R_1) ** 2)
+            lower_curv = -upper_curv
+            plt.plot(x_coords, upper_curv, color= 'lightcoral')
+            plt.plot(x_coords, lower_curv, color= 'lightcoral')
         
             x_0 = waist[i, 0, 0]
             tmp_line = mlines.Line2D([x_0 + x_init, x_0 + x_init], [1 / 12, -1 / 12], color= 'red')
@@ -364,18 +364,7 @@ class Resonator:
             plt.plot(x_coords, upper_curv, color= 'r')
             plt.plot(x_coords, lower_curv, color= 'r')
 
-            x_1 = waist[i, 1, 0]
-            tmp_line = mlines.Line2D([x_1 + x_init, x_1 + x_init], [1 / 12 + y_offset_1, -1 / 12 + y_offset_1], color= 'red')
-            ax.add_line(tmp_line)
-            z_R_1 = waist[i, 1, 1] ** 2 * np.pi / using_lambda
-            upper_curv = waist[i, 1, 1] * np.sqrt(1 + ((x_coords - x_1 - x_init) / z_R_1) ** 2)
-            lower_curv = -upper_curv
-            upper_curv = y_offset_1 + upper_curv
-            lower_curv = y_offset_1 + lower_curv
-            plt.plot(x_coords, upper_curv, color= 'r')
-            plt.plot(x_coords, lower_curv, color= 'r')
-
-        
+                    
         plt.get_current_fig_manager().window.state('zoomed')
         plt.axis('equal')
         plt.axis('off')
