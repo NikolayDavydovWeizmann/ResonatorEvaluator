@@ -34,29 +34,35 @@ def quadratic_solver(A, B, C):
         return np.array([nan, nan])
 
 class Mirror:
-    def __init__(self, coord, angle, radius):
+    def __init__(self, coord: float, in_plane_angle: float, radius: float, in_plane_angle_deviation: float, out_of_plane_angle_deviation: float, in_plane_coord_deviation: float, out_of_plane_coord_deviation: float):
         self.coord = coord
-        self.angle = angle
+        self.in_plane_angle = in_plane_angle
+        self.in_plane_angle_deviation = in_plane_angle_deviation
+        self.out_of_plane_angle_deviation = out_of_plane_angle_deviation
+        self.in_plane_coord_deviation = in_plane_coord_deviation
+        self.out_of_plane_coord_deviation = out_of_plane_coord_deviation
         self.radius = radius
         self.z_central_coord = nan
         self.x_central_coord = nan
+        self.y_central_coord = nan
         self.terminating = (np.abs(self.angle) < ANGLE_ACCURACY)
 
     def __lt__(self, x):
         return self.coord < x.coord
 
     def get_matrix_sagittal(self):
-        return np.matrix([[1, 0],[-1 * np.cos(self.angle) / self.radius, 1]])
+        return np.matrix([[1, 0],[-1 * np.cos(self.in_plane_angle) / self.radius, 1]])
 
     def get_matrix_tangential(self):
-        return np.matrix([[1, 0],[-1 / np.cos(self.angle) / self.radius, 1]])
+        return np.matrix([[1, 0],[-1 / np.cos(self.in_plane_angle) / self.radius, 1]])
 
-    def set_central_coord(self, z_central_coord, x_central_coord):
+    def set_central_coord(self, z_central_coord, x_central_coord, y_central_coord):
         self.x_central_coord = x_central_coord
         self.z_central_coord = z_central_coord
+        self.y_central_coord = y_central_coord
 
     def get_central_coord(self):
-        return np.array([self.z_central_coord, self.x_central_coord])
+        return np.array([self.z_central_coord, self.x_central_coord, self.y_central_coord])
 
 class Resonator:
     def __init__ (self, num_of_mirrors, *args):
@@ -68,25 +74,22 @@ class Resonator:
         self.refresh()
         
     def refresh(self):
-        tmp_coord = np.array([0, 0])
-        tmp_angle_rad = self.elems[0].angle
-        self.elems[0].set_central_coord(np.cos(tmp_angle_rad) * self.elems[0].radius, np.sin(tmp_angle_rad) * self.elems[0].radius)
-        self.elems[0].terminating = (np.abs(self.elems[0].angle) < ANGLE_ACCURACY)
-        tmp_diraction = np.array([1, 0])
+        tmp_coord = np.array([0, 0, 0])
+        tmp_angle_rad = self.elems[0].in_plane_angle
+        self.elems[0].set_central_coord(np.cos(tmp_angle_rad + self.in_plane_angle_deviation) * self.elems[0].radius, np.sin(tmp_angle_rad + self.elems[0].in_plane_angle_deviation) * self.elems[0].radius + self.elems[0].in_plane_coord_deviation, np.sin(self.elems[0].out_of__plane_angle_deviation) * self.elems[0].radius + self.elems[0].out_of_plane_coord_deviation)
+        self.elems[0].terminating = (np.abs(self.elems[0].in_plane_angle) < ANGLE_ACCURACY and self.elems[0].in_plane_angle_deviation < ANGLE_ACCURACY and self.elems[0].out_of_plane_angle_deviation < ANGLE_ACCURACY)
+        tmp_diraction = np.array([1, 0, 0])
         for i in range(1, self.num_of_mirrors):
-            tmp_angle_rad = self.elems[i].angle
+            tmp_angle_rad = self.elems[i].in_plane_angle
             tmp_coord = tmp_coord + (self.elems[i].coord - self.elems[i - 1].coord) * tmp_diraction
-            tmp_diraction = np.array([-1 * tmp_diraction[0] * np.cos(tmp_angle_rad) + tmp_diraction[1] * np.sin(tmp_angle_rad), -1 * (tmp_diraction[0] * np.sin(tmp_angle_rad) + tmp_diraction[1] * np.cos(tmp_angle_rad))])
+            tmp_diraction = np.array([-1 * tmp_diraction[0] * np.cos(tmp_angle_rad) + tmp_diraction[1] * np.sin(tmp_angle_rad), -1 * (tmp_diraction[0] * np.sin(tmp_angle_rad) + tmp_diraction[1] * np.cos(tmp_angle_rad)), 0])
             tmp_center = tmp_coord + tmp_diraction * self.elems[i].radius
             tmp_diraction = np.array([tmp_diraction[0] * np.cos(tmp_angle_rad) - tmp_diraction[1] * np.sin(tmp_angle_rad), tmp_diraction[0] * np.sin(tmp_angle_rad) + tmp_diraction[1] * np.cos(tmp_angle_rad)])
-            self.elems[i].set_central_coord(tmp_center[0], tmp_center[1])
-            self.elems[i].terminating = (np.abs(self.elems[i].angle) < ANGLE_ACCURACY)
+            self.elems[i].set_central_coord(tmp_center[0], tmp_center[1] + self.elems[i].in_plane_coord_deviation, np.sin(self.elems[i].out_of__plane_angle_deviation) * self.elems[i].radius + self.elems[i].out_of_plane_coord_deviation)
+            self.elems[i].terminating = (np.abs(self.elems[0].in_plane_angle) < ANGLE_ACCURACY and self.elems[0].in_plane_angle_deviation < ANGLE_ACCURACY and self.elems[0].out_of_plane_angle_deviation < ANGLE_ACCURACY)
 
     def is_consistent(self):
-        mrkr = 0
-        for i in range(self.num_of_mirrors):
-            mrkr += self.elems[i].terminating
-        return (mrkr == 2 and self.elems[0].terminating and self.elems[-1].terminating and self.elems[0].coord < 0.000000001)
+        return (self.elems[0].terminating and self.elems[-1].terminating and self.elems[0].coord < 0.000000001)
 
     def st_matrix_sagittal(self):
         res = self.elems[0].get_matrix_sagittal()
@@ -139,22 +142,22 @@ class Resonator:
         position = np.array([0, 0])
 
         for i in range(self.num_of_mirrors - 1):
-            clctd_angle += self.elems[i].angle
+            clctd_angle += self.elems[i].in_plane_angle
             center = position + self.elems[i].radius * np.array([np.cos(clctd_angle), np.sin(clctd_angle)])
             clctd_angle += 180
             tmp_arc = patches.Arc(center, 2 * self.elems[i].radius, 2 * self.elems[i].radius, 0, clctd_angle - MIRROR_ANGLE_SIZE, clctd_angle + MIRROR_ANGLE_SIZE, color= 'blue')
             ax.add_patch(tmp_arc)
             if i == 0:
-                clctd_angle -= self.elems[i].angle
+                clctd_angle -= self.elems[i].in_plane_angle
                 d_position = (self.elems[i + 1].coord - self.elems[i].coord) * np.array([1, 0])
             else:
-                clctd_angle += self.elems[i].angle
+                clctd_angle += self.elems[i].in_plane_angle
                 d_position = -1 * (self.elems[i + 1].coord - self.elems[i].coord) * np.array([np.cos(np.pi * clctd_angle / 180), np.sin(np.pi * clctd_angle / 180)])
             tmp_line = mlines.Line2D([position[0], position[0] + d_position[0]], [position[1], position[1] + d_position[1]])
             ax.add_line(tmp_line)
             position = position + d_position
         
-        clctd_angle += self.elems[-1].angle
+        clctd_angle += self.elems[-1].in_plane_angle
         center = position + self.elems[-1].radius * np.array([np.cos(clctd_angle), np.sin(clctd_angle)])
         clctd_angle += 180
         tmp_arc = patches.Arc(center, 2 * self.elems[-1].radius, 2 * self.elems[-1].radius, 0, clctd_angle - MIRROR_ANGLE_SIZE, clctd_angle + MIRROR_ANGLE_SIZE, color= 'blue')
@@ -203,73 +206,112 @@ class Resonator:
         rotation = 0
         while not self.is_consistent():
 
-            r_transform_mx = np.matrix([[1, 0], [0, 1]])
+            r_transform_mx_tangential = np.matrix([[1, 0], [0, 1]])
             for i in range(1, self.num_of_mirrors - 1):
-                r_transform_mx = np.matmul(np.matrix([[1, self.elems[i].coord - self.elems[i - 1].coord], [0, 1]]), r_transform_mx)
-                r_transform_mx = np.matmul(self.elems[i].get_matrix_tangential(), r_transform_mx)
-                r_transform_mx = np.matmul(self.elems[i].get_matrix_tangential(), r_transform_mx)
-            r_transform_mx = np.matmul(np.matrix([[1, (self.elems[-1].coord - self.elems[-2].coord)], [0, 1]]), r_transform_mx)
+                r_transform_mx_tangential = np.matmul(np.matrix([[1, self.elems[i].coord - self.elems[i - 1].coord], [0, 1]]), r_transform_mx_tangential)
+                r_transform_mx_tangential = np.matmul(self.elems[i].get_matrix_tangential(), r_transform_mx_tangential)
+                r_transform_mx_tangential = np.matmul(self.elems[i].get_matrix_tangential(), r_transform_mx_tangential)
+            r_transform_mx_tangential = np.matmul(np.matrix([[1, (self.elems[-1].coord - self.elems[-2].coord)], [0, 1]]), r_transform_mx_tangential)
 
-            z_central_start = self.elems[0].radius * np.cos(self.elems[0].angle)
-            x_central_start = self.elems[0].radius * np.sin(self.elems[0].angle)
+            r_transform_mx_sagittal = np.matrix([[1, 0], [0, 1]])
+            for i in range(1, self.num_of_mirrors - 1):
+                r_transform_mx_sagittal = np.matmul(np.matrix([[1, self.elems[i].coord - self.elems[i - 1].coord], [0, 1]]), r_transform_mx_sagittal)
+                r_transform_mx_sagittal = np.matmul(self.elems[i].get_matrix_sagittal(), r_transform_mx_sagittal)
+                r_transform_mx_sagittal = np.matmul(self.elems[i].get_matrix_sagittal(), r_transform_mx_sagittal)
+            r_transform_mx_sagittal = np.matmul(np.matrix([[1, (self.elems[-1].coord - self.elems[-2].coord)], [0, 1]]), r_transform_mx_sagittal)
 
-            self.elems[0].angle = 0
+            central_start = self.elems[0].set_central_coord()
+            z_central_start = central_start[0]
+            x_central_start = central_start[1]
+            y_central_start = central_start[2]
+
+            self.elems[0].in_plane_angle = 0
             self.elems[0].coord = 0
 
             term_radius = -1 * self.elems[-1].radius
 
-            x_central_term = -1 * (-1) ** self.num_of_mirrors * self.elems[-1].radius * np.sin(self.elems[-1].angle) / (r_transform_mx[1, 0] * term_radius + r_transform_mx[0, 0])
-            new_radius = (r_transform_mx[1, 1] * term_radius + r_transform_mx[0, 1]) / (r_transform_mx[1, 0] * term_radius + r_transform_mx[0, 0])
-            z_central_term = np.sqrt(new_radius ** 2 - x_central_term ** 2)
+            x_central_term_tangential = -1 * (-1) ** self.num_of_mirrors * self.elems[-1].radius * np.sin(self.elems[-1].in_plane_angle + self.elems[-1].in_plane_angle_deviation) / (r_transform_mx_tangential[1, 0] * term_radius + r_transform_mx_tangential[0, 0])
+            new_radius = (r_transform_mx_tangential[1, 1] * term_radius + r_transform_mx_tangential[0, 1]) / (r_transform_mx_tangential[1, 0] * term_radius + r_transform_mx_tangential[0, 0])
+            z_central_term_tangential = np.sqrt(new_radius ** 2 - x_central_term_tangential ** 2)
 
-            direct = np.array([np.abs(z_central_term - z_central_start), x_central_start - x_central_term])
-            direct = 1 / np.sqrt(direct[0] ** 2 + direct[1] ** 2) * direct
+            y_central_term_sagittal = -1 * (-1) ** self.num_of_mirrors * self.elems[-1].radius * np.sin(self.elems[-1].out_of_plane_angle_deviation) / (r_transform_mx_sagittal[1, 0] * term_radius + r_transform_mx_sagittal[0, 0])
+            new_radius = (r_transform_mx_sagittal[1, 1] * term_radius + r_transform_mx_sagittal[0, 1]) / (r_transform_mx_sagittal[1, 0] * term_radius + r_transform_mx_sagittal[0, 0])
+            z_central_term_sagittal = np.sqrt(new_radius ** 2 - y_central_term_sagittal ** 2)
+
+            direct = np.array([1, (x_central_start - x_central_term_tangential) / np.abs(z_central_term_tangential - z_central_start), (x_central_start - y_central_term_sagittal) / np.abs(z_central_term_sagittal - z_central_start)])
+            direct = 1 / np.sqrt(direct[0] ** 2 + direct[1] ** 2 + direct[2] ** 2) * direct
             opt_path = self.elems[0].radius
-            start_coord = np.array([z_central_start, x_central_start])
+            start_coord = np.array([z_central_start, x_central_start, y_central_start])
 
             if flag:
-                rotation = np.arctan2(direct[1], direct[0])
+                rotation = np.arctan2(np.sqrt(direct[0] ** 2 + direct[1] ** 2), direct[0])
                 flag = False
+
+            z_solutions = np.zeros(2)
+            x_solutions = np.zeros(2)
+            y_solutions = np.zeros(2)
 
             for i in range(1, self.num_of_mirrors):
                 central_coord = self.elems[i].get_central_coord()
 
                 if np.abs(direct[1]) < ZERO_ACCURACY:
-                    x_solutions = np.array([start_coord[1], start_coord[1]])
-                    if np.abs(x_solutions[0] - central_coord[1]) > self.elems[i].radius:
-                        raise Exception("Missing mirror")
-                    z_diff = np.sqrt(self.elems[i].radius ** 2 - (x_solutions[0] - central_coord[1]) ** 2)
-                    z_solutions = np.array([central_coord[0] + z_diff, central_coord[0] - z_diff])
+                    if np.abs(direct[2]) < ZERO_ACCURACY:
+                        x_solutions = np.array([start_coord[1], start_coord[1]])
+                        y_solutions = np.array([start_coord[2], start_coord[2]])
+                        if (x_solutions[0] - central_coord[1]) ** 2 + (y_solutions[0] - central_coord[2]) ** 2 > self.elems[i].radius ** 2:
+                            raise Exception("Missing mirror")
+                        z_diff = np.sqrt(self.elems[i].radius ** 2 - (x_solutions[0] - central_coord[1]) ** 2 - (y_solutions[0] - central_coord[2]) ** 2)
+                        z_solutions = np.array([central_coord[0] + z_diff, central_coord[0] - z_diff])
+                    else:
+                        x_solutions = np.array([start_coord[1], start_coord[1]])
+                        A_coef = 1
+                        B_coef = 2 * ((direct[2] * start_coord[0] - direct[0] * start_coord[2] - direct[2] * central_coord[0]) * direct[0] - direct[2] ** 2 * central_coord[2])
+                        C_coef = (direct[2] ** 2 * central_coord[2] ** 2 + (direct[2] * start_coord[0] - direct[0] * start_coord[2] - direct[2] * central_coord[0]) ** 2
+                                 - direct[2] ** 2 * self.elems[i].radius ** 2 + direct[2] ** 2 * (start_coord[1] - central_coord[1]) ** 2)
+                        y_solutions = quadratic_solver(A_coef, B_coef, C_coef)
+                        if np.isnan(y_solutions[0]):
+                            raise Exception("Missing mirror")
+                        z_solutions = start_coord[0] * np.array([1, 1]) + direct[0] / direct[2] * (y_solutions - start_coord[2] * np.array([1, 1]))
                 else:
                     A_coef = 1
-                    B_coef = 2 * (direct[0] * direct[1] * (start_coord[0] - central_coord[0]) - direct[0] ** 2 * start_coord[1] - direct[1] ** 2 * central_coord[1])
-                    C_coef = (direct[1] ** 2 * (start_coord[0] - central_coord[0]) ** 2 - 2 * direct[0] * direct[1] * (start_coord[0] - central_coord[0]) * start_coord[1]
-                             + direct[0] ** 2 * start_coord[1] ** 2 + direct[1] ** 2 * central_coord[1] ** 2 - direct[1] ** 2 * self.elems[i].radius ** 2)
+                    B_coef = 2 * ((direct[1] * start_coord[2] - direct[2] * start_coord[1] - direct[1] * central_coord[2]) * direct[2]
+                             + (direct[1] * start_coord[0] - direct[0] * start_coord[1] - direct[1] * central_coord[0]) * direct[0] - direct[1] ** 2 * central_coord[2])
+                    C_coef = (direct[1] ** 2 * central_coord[1] ** 2 + (direct[1] * start_coord[2] - direct[2] * start_coord[1] - direct[1] * central_coord[2]) ** 2
+                             + (direct[1] * start_coord[0] - direct[0] * start_coord[1] - direct[1] * central_coord[0]) ** 2 - direct[1] ** 2 * self.elems[i].radius ** 2)
                     x_solutions = quadratic_solver(A_coef, B_coef, C_coef)
                     if np.isnan(x_solutions[0]):
                         raise Exception("Missing mirror")
                     z_solutions = start_coord[0] * np.array([1, 1]) + direct[0] / direct[1] * (x_solutions - start_coord[1] * np.array([1, 1]))
+                    y_solutions = start_coord[0] * np.array([1, 1]) + direct[2] / direct[1] * (x_solutions - start_coord[1] * np.array([1, 1]))
             
-                cntrl_direct = np.array([[central_coord[0] - z_solutions[0], central_coord[1] - x_solutions[0]], [central_coord[0] - z_solutions[1], central_coord[1] - x_solutions[1]]])
-                cntrl_direct[0] = cntrl_direct[0] / np.sqrt(cntrl_direct[0, 0] ** 2 + cntrl_direct[0, 1] ** 2)
-                cntrl_direct[1] = cntrl_direct[1] / np.sqrt(cntrl_direct[1, 0] ** 2 + cntrl_direct[1, 1] ** 2)
+                cntrl_direct = np.array([[central_coord[0] - z_solutions[0], central_coord[1] - x_solutions[0], central_coord[2] - y_solutions[0]], [central_coord[0] - z_solutions[1], central_coord[1] - x_solutions[1], central_coord[2] - y_solutions[1]]])
+                cntrl_direct[0] = cntrl_direct[0] / np.sqrt(cntrl_direct[0, 0] ** 2 + cntrl_direct[0, 1] ** 2 + cntrl_direct[0, 2] ** 2)
+                cntrl_direct[1] = cntrl_direct[1] / np.sqrt(cntrl_direct[1, 0] ** 2 + cntrl_direct[1, 1] ** 2 + cntrl_direct[1, 2] ** 2)
 
                 angle = 0
 
-                if direct[0] * cntrl_direct[0, 0] + direct[1] * cntrl_direct[0, 1] < 0:
-                    new_start_coord = np.array([z_solutions[0], x_solutions[0]])
-                    angle = np.arctan2(direct[1] * cntrl_direct[0, 0] - direct[0] * cntrl_direct[0, 1], -1 * direct[0] * cntrl_direct[0, 0] - direct[1] * cntrl_direct[0, 1])
-                    direct = direct - 2 * (direct[0] * cntrl_direct[0, 0] + direct[1] * cntrl_direct[0, 1]) * cntrl_direct[0]
+                if direct[0] * cntrl_direct[0, 0] + direct[1] * cntrl_direct[0, 1] + direct[2] * cntrl_direct[0, 2] < 0:
+                    new_start_coord = np.array([z_solutions[0], x_solutions[0], y_solutions[0]])
+                    cosx = direct[0] * cntrl_direct[0, 0] + direct[1] * cntrl_direct[0, 1] + direct[2] * cntrl_direct[0, 2]
+                    sinx = direct - cosx * cntrl_direct
+                    angle = np.arctan2(np.sqrt(sinx[0] ** 2 + sinx[1] ** 2 + sinx[2] ** 2), cosx)
+                    direct = direct - 2 * cosx * cntrl_direct[0]
                 else:
-                    new_start_coord = np.array([z_solutions[1], x_solutions[1]])
-                    angle = np.arctan2(direct[1] * cntrl_direct[1, 0] - direct[0] * cntrl_direct[1, 1], -1 * direct[0] * cntrl_direct[1, 0] - direct[1] * cntrl_direct[1, 1])
-                    direct = direct - 2 * (direct[0] * cntrl_direct[1, 0] + direct[1] * cntrl_direct[1, 1]) * cntrl_direct[1]
+                    new_start_coord = np.array([z_solutions[1], x_solutions[1], y_solutions[1]])
+                    cosx = direct[0] * cntrl_direct[1, 0] + direct[1] * cntrl_direct[1, 1] + direct[2] * cntrl_direct[1, 2]
+                    sinx = direct - cosx * cntrl_direct
+                    angle = np.arctan2(np.sqrt(sinx[0] ** 2 + sinx[1] ** 2 + sinx[2] ** 2), cosx)
+                    direct = direct - 2 * cosx * cntrl_direct[1]
 
                 d_start_coord = new_start_coord - start_coord
-                opt_path += np.sqrt(d_start_coord[0] ** 2 + d_start_coord[1] ** 2)
+                opt_path += np.sqrt(d_start_coord[0] ** 2 + d_start_coord[1] ** 2 + d_start_coord[2] ** 2)
                 start_coord = new_start_coord
                 self.elems[i].coord = opt_path
-                self.elems[i].angle = angle
+                self.elems[i].in_plane_angle = angle
+                self.elems[i].in_plane_angle_deviation = 0
+                self.elems[i].out_of_plane_angle_deviation = 0
+                self.elems[i].in_plane_coord_deviation = 0
+                self.elems[i].out_of_plane_coord_deviation = 0
             self.refresh()
         return rotation
     
@@ -286,7 +328,7 @@ class Resonator:
         plt.figure(number_of_plots_G)
         ax = plt.gca()
 
-        tmp_line = mlines.Line2D([0, 0], [1 / 3, -1 / 3])
+        tmp_line = mlines.Line2D([0, 0], [1, -1])
         ax.add_line(tmp_line)
         length = self.get_length()
         tmp_line = mlines.Line2D([length, length], [1, -1])
@@ -366,5 +408,5 @@ class Resonator:
 
                     
         plt.get_current_fig_manager().window.state('zoomed')
-        plt.axis('equal')
+        """  plt.axis('equal')"""
         plt.axis('off')
