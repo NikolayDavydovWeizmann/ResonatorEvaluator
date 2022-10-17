@@ -9,6 +9,7 @@ MIRROR_ANGLE_SIZE = 10
 ANGLE_ACCURACY = 10 ** -13
 ZERO_ACCURACY = 10 ** -13
 
+
 def transrorm_waist(waist2, radius, lmbd, transform_mx):
     res_waist2 = 0
     res_radius = 0
@@ -60,6 +61,7 @@ class Resonator:
     def __init__ (self, num_of_mirrors, *args):
         self.num_of_mirrors = num_of_mirrors
         self.elems = []
+        self.__number_of_plots = 0
         for arg in args:
             self.elems.append(arg)
         self.elems.sort()
@@ -216,7 +218,7 @@ class Resonator:
 
             term_radius = -1 * self.elems[-1].radius
 
-            x_central_term = (-1) ** self.num_of_mirrors * self.elems[-1].radius * np.sin(self.elems[-1].angle) / (r_transform_mx[1, 0] * term_radius + r_transform_mx[0, 0])
+            x_central_term = -1 * (-1) ** self.num_of_mirrors * self.elems[-1].radius * np.sin(self.elems[-1].angle) / (r_transform_mx[1, 0] * term_radius + r_transform_mx[0, 0])
             new_radius = (r_transform_mx[1, 1] * term_radius + r_transform_mx[0, 1]) / (r_transform_mx[1, 0] * term_radius + r_transform_mx[0, 0])
             z_central_term = np.sqrt(new_radius ** 2 - x_central_term ** 2)
 
@@ -232,7 +234,7 @@ class Resonator:
             for i in range(1, self.num_of_mirrors):
                 central_coord = self.elems[i].get_central_coord()
 
-                if np.abs(direct[1]) < 10 ** -9:
+                if np.abs(direct[1]) < ZERO_ACCURACY:
                     x_solutions = np.array([start_coord[1], start_coord[1]])
                     if np.abs(x_solutions[0] - central_coord[1]) > self.elems[i].radius:
                         raise Exception("Missing mirror")
@@ -277,7 +279,10 @@ class Resonator:
 
         number_of_steps = 10000
         y_offset_1 = -3
+
+        self.__number_of_plots += 1
         
+        plt.figure(self.__number_of_plots)
         fig, ax = plt.subplots()
 
         tmp_line = mlines.Line2D([0, 0], [1 / 3, -1 / 3])
@@ -374,4 +379,3 @@ class Resonator:
         plt.get_current_fig_manager().window.state('zoomed')
         plt.axis('equal')
         plt.axis('off')
-        plt.show()  
