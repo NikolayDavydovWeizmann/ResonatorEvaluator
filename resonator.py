@@ -34,7 +34,7 @@ def quadratic_solver(A, B, C):
         return np.array([nan, nan])
 
 class Mirror:
-    def __init__(self, coord: float, in_plane_angle: float, radius: float, in_plane_angle_deviation: float, out_of_plane_angle_deviation: float, in_plane_coord_deviation: float, out_of_plane_coord_deviation: float):
+    def __init__(self, coord, in_plane_angle, radius, in_plane_angle_deviation= 0, out_of_plane_angle_deviation= 0, in_plane_coord_deviation = 0, out_of_plane_coord_deviation = 0):
         self.coord = coord
         self.in_plane_angle = in_plane_angle
         self.in_plane_angle_deviation = in_plane_angle_deviation
@@ -45,7 +45,7 @@ class Mirror:
         self.z_central_coord = nan
         self.x_central_coord = nan
         self.y_central_coord = nan
-        self.terminating = (np.abs(self.angle) < ANGLE_ACCURACY)
+        self.terminating = (np.abs(self.in_plane_angle) < ANGLE_ACCURACY)
 
     def __lt__(self, x):
         return self.coord < x.coord
@@ -76,7 +76,7 @@ class Resonator:
     def refresh(self):
         tmp_coord = np.array([0, 0, 0])
         tmp_angle_rad = self.elems[0].in_plane_angle
-        self.elems[0].set_central_coord(np.cos(tmp_angle_rad + self.in_plane_angle_deviation) * self.elems[0].radius, np.sin(tmp_angle_rad + self.elems[0].in_plane_angle_deviation) * self.elems[0].radius + self.elems[0].in_plane_coord_deviation, np.sin(self.elems[0].out_of__plane_angle_deviation) * self.elems[0].radius + self.elems[0].out_of_plane_coord_deviation)
+        self.elems[0].set_central_coord(np.cos(tmp_angle_rad + self.elems[0].in_plane_angle_deviation) * self.elems[0].radius, np.sin(tmp_angle_rad + self.elems[0].in_plane_angle_deviation) * self.elems[0].radius + self.elems[0].in_plane_coord_deviation, np.sin(self.elems[0].out_of_plane_angle_deviation) * self.elems[0].radius + self.elems[0].out_of_plane_coord_deviation)
         self.elems[0].terminating = (np.abs(self.elems[0].in_plane_angle) < ANGLE_ACCURACY and self.elems[0].in_plane_angle_deviation < ANGLE_ACCURACY and self.elems[0].out_of_plane_angle_deviation < ANGLE_ACCURACY)
         tmp_diraction = np.array([1, 0, 0])
         for i in range(1, self.num_of_mirrors):
@@ -85,11 +85,17 @@ class Resonator:
             tmp_diraction = np.array([-1 * tmp_diraction[0] * np.cos(tmp_angle_rad) + tmp_diraction[1] * np.sin(tmp_angle_rad), -1 * (tmp_diraction[0] * np.sin(tmp_angle_rad) + tmp_diraction[1] * np.cos(tmp_angle_rad)), 0])
             tmp_center = tmp_coord + tmp_diraction * self.elems[i].radius
             tmp_diraction = np.array([tmp_diraction[0] * np.cos(tmp_angle_rad) - tmp_diraction[1] * np.sin(tmp_angle_rad), tmp_diraction[0] * np.sin(tmp_angle_rad) + tmp_diraction[1] * np.cos(tmp_angle_rad)])
-            self.elems[i].set_central_coord(tmp_center[0], tmp_center[1] + self.elems[i].in_plane_coord_deviation, np.sin(self.elems[i].out_of__plane_angle_deviation) * self.elems[i].radius + self.elems[i].out_of_plane_coord_deviation)
+            self.elems[i].set_central_coord(tmp_center[0], tmp_center[1] + self.elems[i].in_plane_coord_deviation, np.sin(self.elems[i].out_of_plane_angle_deviation) * self.elems[i].radius + self.elems[i].out_of_plane_coord_deviation)
             self.elems[i].terminating = (np.abs(self.elems[0].in_plane_angle) < ANGLE_ACCURACY and self.elems[0].in_plane_angle_deviation < ANGLE_ACCURACY and self.elems[0].out_of_plane_angle_deviation < ANGLE_ACCURACY)
 
     def is_consistent(self):
-        return (self.elems[0].terminating and self.elems[-1].terminating and self.elems[0].coord < 0.000000001)
+        res = True
+        for i in range(self.num_of_mirrors):
+            res = res and self.elems[i].in_plane_angle_deviation == 0
+            res = res and self.elems[i].out_of_plane_angle_deviation == 0
+            res = res and self.elems[i].in_plane_coord_deviation == 0
+            res = res and self.elems[i].out_of_plane_coord_deviation == 0
+        return (self.elems[0].terminating and self.elems[-1].terminating and self.elems[0].coord < ZERO_ACCURACY and res)
 
     def st_matrix_sagittal(self):
         res = self.elems[0].get_matrix_sagittal()
@@ -220,13 +226,17 @@ class Resonator:
                 r_transform_mx_sagittal = np.matmul(self.elems[i].get_matrix_sagittal(), r_transform_mx_sagittal)
             r_transform_mx_sagittal = np.matmul(np.matrix([[1, (self.elems[-1].coord - self.elems[-2].coord)], [0, 1]]), r_transform_mx_sagittal)
 
-            central_start = self.elems[0].set_central_coord()
+            central_start = self.elems[0].get_central_coord()
             z_central_start = central_start[0]
             x_central_start = central_start[1]
             y_central_start = central_start[2]
 
             self.elems[0].in_plane_angle = 0
             self.elems[0].coord = 0
+            self.elems[0].in_plane_angle_deviation = 0
+            self.elems[0].out_of_plane_angle_deviation = 0
+            self.elems[0].in_plane_coord_deviation = 0
+            self.elems[0].out_of_plane_coord_deviation = 0
 
             term_radius = -1 * self.elems[-1].radius
 
@@ -275,7 +285,7 @@ class Resonator:
                 else:
                     A_coef = 1
                     B_coef = 2 * ((direct[1] * start_coord[2] - direct[2] * start_coord[1] - direct[1] * central_coord[2]) * direct[2]
-                             + (direct[1] * start_coord[0] - direct[0] * start_coord[1] - direct[1] * central_coord[0]) * direct[0] - direct[1] ** 2 * central_coord[2])
+                             + (direct[1] * start_coord[0] - direct[0] * start_coord[1] - direct[1] * central_coord[0]) * direct[0] - direct[1] ** 2 * central_coord[1])
                     C_coef = (direct[1] ** 2 * central_coord[1] ** 2 + (direct[1] * start_coord[2] - direct[2] * start_coord[1] - direct[1] * central_coord[2]) ** 2
                              + (direct[1] * start_coord[0] - direct[0] * start_coord[1] - direct[1] * central_coord[0]) ** 2 - direct[1] ** 2 * self.elems[i].radius ** 2)
                     x_solutions = quadratic_solver(A_coef, B_coef, C_coef)
@@ -293,13 +303,13 @@ class Resonator:
                 if direct[0] * cntrl_direct[0, 0] + direct[1] * cntrl_direct[0, 1] + direct[2] * cntrl_direct[0, 2] < 0:
                     new_start_coord = np.array([z_solutions[0], x_solutions[0], y_solutions[0]])
                     cosx = direct[0] * cntrl_direct[0, 0] + direct[1] * cntrl_direct[0, 1] + direct[2] * cntrl_direct[0, 2]
-                    sinx = direct - cosx * cntrl_direct
+                    sinx = direct - cosx * cntrl_direct[0]
                     angle = np.arctan2(np.sqrt(sinx[0] ** 2 + sinx[1] ** 2 + sinx[2] ** 2), cosx)
                     direct = direct - 2 * cosx * cntrl_direct[0]
                 else:
                     new_start_coord = np.array([z_solutions[1], x_solutions[1], y_solutions[1]])
                     cosx = direct[0] * cntrl_direct[1, 0] + direct[1] * cntrl_direct[1, 1] + direct[2] * cntrl_direct[1, 2]
-                    sinx = direct - cosx * cntrl_direct
+                    sinx = direct - cosx * cntrl_direct[1]
                     angle = np.arctan2(np.sqrt(sinx[0] ** 2 + sinx[1] ** 2 + sinx[2] ** 2), cosx)
                     direct = direct - 2 * cosx * cntrl_direct[1]
 
@@ -372,8 +382,8 @@ class Resonator:
             x_term = self.elems[i + 1].coord
             tmp_line = mlines.Line2D([x_init, x_init], [1 / 3, -1 / 3])
             ax.add_line(tmp_line)
-            focal_length_tg = self.elems[i].radius / 2 * np.cos(self.elems[i].angle)
-            focal_length_sag = self.elems[i].radius / 2 / np.cos(self.elems[i].angle)
+            focal_length_tg = self.elems[i].radius / 2 * np.cos(self.elems[i].in_plane_angle)
+            focal_length_sag = self.elems[i].radius / 2 / np.cos(self.elems[i].in_plane_angle)
             tmp_line = mlines.Line2D([x_init - focal_length_sag, x_init - focal_length_sag, x_init - focal_length_sag + 0.05], [1 / 6, -1 / 6, -1 / 6], color= 'thistle')
             ax.add_line(tmp_line)
             tmp_line = mlines.Line2D([x_init + focal_length_sag, x_init + focal_length_sag, x_init + focal_length_sag - 0.05], [1 / 6, -1 / 6, -1 / 6], color= 'thistle')
