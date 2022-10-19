@@ -91,21 +91,30 @@ def quadratic_solver(A, B, C_):
         return np.array([Decimal('NaN'), Decimal('NaN')])
 
 class Mirror:
-    def __init__(self, coord, in_plane_angle, radius, in_plane_angle_deviation= Decimal('0'), out_of_plane_angle_deviation= Decimal('0'), in_plane_coord_deviation = Decimal('0'), out_of_plane_coord_deviation = Decimal('0')):
+    def __init__(self, coord, in_plane_angle, radius, in_plane_angle_deviation= Decimal('0'), out_of_plane_angle_deviation= Decimal('0'), in_plane_coord_deviation = Decimal('0'), along_axis_coord_deviation = Decimal('0'), out_of_plane_coord_deviation = Decimal('0')):
         self.coord = coord
         self.in_plane_angle = in_plane_angle
         self.in_plane_angle_deviation = in_plane_angle_deviation
         self.out_of_plane_angle_deviation = out_of_plane_angle_deviation
         self.in_plane_coord_deviation = in_plane_coord_deviation
+        self.along_axis_coord_deviation = along_axis_coord_deviation
         self.out_of_plane_coord_deviation = out_of_plane_coord_deviation
         self.radius = radius
         self.z_central_coord = Decimal('NaN')
         self.x_central_coord = Decimal('NaN')
         self.y_central_coord = Decimal('NaN')
-        self.terminating = (self.in_plane_angle.copy_abs() < ANGLE_ACCURACY)
 
     def __lt__(self, x):
         return self.coord < x.coord
+
+    def is_terminating(self):
+        res = self.in_plane_angle < ANGLE_ACCURACY
+        res = res and self.in_plane_angle_deviation < ANGLE_ACCURACY
+        res = res and self.out_of_plane_angle_deviation < ANGLE_ACCURACY
+        res = res and self.in_plane_coord_deviation < ZERO_ACCURACY
+        res = res and self.along_axis_coord_deviation < ZERO_ACCURACY
+        res = res and self.out_of_plane_coord_deviation < ZERO_ACCURACY
+        return res
 
     def get_matrix_sagittal(self):
         return np.matrix([[Decimal('1'), Decimal('0')],[Decimal('-1') * cos(self.in_plane_angle) / self.radius, Decimal('1')]])
@@ -133,15 +142,17 @@ class Resonator:
     def refresh(self):
         tmp_coord = np.array([Decimal('0'), Decimal('0'), Decimal('0')])
         tmp_angle_rad = self.elems[0].in_plane_angle + self.elems[0].in_plane_angle_deviation
-        self.elems[0].set_central_coord(cos(tmp_angle_rad) * self.elems[0].radius, sin(tmp_angle_rad) * self.elems[0].radius + self.elems[0].in_plane_coord_deviation, sin(self.elems[0].out_of_plane_angle_deviation) * self.elems[0].radius + self.elems[0].out_of_plane_coord_deviation)
-        self.elems[0].terminating = (self.elems[0].in_plane_angle.copy_abs() < ANGLE_ACCURACY and self.elems[0].in_plane_angle_deviation.copy_abs() < ANGLE_ACCURACY and self.elems[0].out_of_plane_angle_deviation.copy_abs() < ANGLE_ACCURACY)
+        self.elems[0].set_central_coord(cos(tmp_angle_rad) * self.elems[0].radius + self.elems[0].along_axis_coord_deviation, sin(tmp_angle_rad) * self.elems[0].radius + self.elems[0].in_plane_coord_deviation, sin(self.elems[0].out_of_plane_angle_deviation) * self.elems[0].radius + self.elems[0].out_of_plane_coord_deviation)
         tmp_diraction = np.array([Decimal('1'), Decimal('0'), Decimal('0')])
         for i in range(1, self.num_of_mirrors):
             tmp_angle_rad = self.elems[i].in_plane_angle
             tmp_coord = tmp_coord + (self.elems[i].coord - self.elems[i - 1].coord) * tmp_diraction
             tmp_diraction_cr = np.array([Decimal('-1') * tmp_diraction[0] * cos(tmp_angle_rad + self.elems[i].in_plane_angle_deviation) + tmp_diraction[1] * sin(tmp_angle_rad + self.elems[i].in_plane_angle_deviation), Decimal('-1') * (tmp_diraction[0] * sin(tmp_angle_rad + self.elems[i].in_plane_angle_deviation) + tmp_diraction[1] * cos(tmp_angle_rad + self.elems[i].in_plane_angle_deviation)), sin(self.elems[i].out_of_plane_coord_deviation)])
             tmp_diraction_cr = tmp_diraction_cr / C.sqrt(C.power(tmp_diraction_cr[0], Decimal('2')) + C.power(tmp_diraction_cr[1], Decimal('2')) + C.power(tmp_diraction_cr[2], Decimal('2')))
-            tmp_center = tmp_coord + tmp_diraction_cr * self.elems[i].radius
+            tmp_center = tmp_coord + tmp_diraction_cr * self.elems[i].radius + tmp_diraction * self.elems[0].along_axis_coord_deviation
+            tmp_center[0] += Decimal('-1') * tmp_diraction[1] * self.elems[0].in_plane_coord_deviation
+            tmp_center[1] += tmp_diraction[0] * self.elems[0].in_plane_coord_deviation
+            tmp_center[2] +=  self.elems[0].out_of_plane_angle_deviation
             tmp_diraction = Decimal('-1') * np.array([tmp_diraction[0] * cos(Decimal('2') * tmp_angle_rad) - tmp_diraction[1] * sin(Decimal('2') * tmp_angle_rad), tmp_diraction[0] * sin(Decimal('2') * tmp_angle_rad) + tmp_diraction[1] * cos(Decimal('2') * tmp_angle_rad), Decimal('0')])
             self.elems[i].set_central_coord(tmp_center[0], tmp_center[1] + self.elems[i].in_plane_coord_deviation, tmp_center[2] + self.elems[i].out_of_plane_coord_deviation)
             self.elems[i].terminating = (self.elems[i].in_plane_angle.copy_abs() < ANGLE_ACCURACY and self.elems[i].in_plane_angle_deviation.copy_abs() < ANGLE_ACCURACY and self.elems[i].out_of_plane_angle_deviation.copy_abs() < ANGLE_ACCURACY)
@@ -149,11 +160,12 @@ class Resonator:
     def is_consistent(self):
         res = True
         for i in range(self.num_of_mirrors):
-            res = res and self.elems[i].in_plane_angle_deviation == Decimal('0')
-            res = res and self.elems[i].out_of_plane_angle_deviation == Decimal('0')
-            res = res and self.elems[i].in_plane_coord_deviation == Decimal('0')
-            res = res and self.elems[i].out_of_plane_coord_deviation == Decimal('0')
-        return (self.elems[0].terminating and self.elems[-1].terminating and self.elems[0].coord < ZERO_ACCURACY and res)
+            res = res and self.elems[i].in_plane_angle_deviation < ANGLE_ACCURACY
+        res = res and self.elems[i].out_of_plane_angle_deviation < ANGLE_ACCURACY
+        res = res and self.elems[i].in_plane_coord_deviation < ZERO_ACCURACY
+        res = res and self.elems[i].along_axis_coord_deviation < ZERO_ACCURACY
+        res = res and self.elems[i].out_of_plane_coord_deviation < ZERO_ACCURACY
+        return (self.elems[0].is_terminating() and self.elems[-1].is_terminating() and self.elems[0].coord < ZERO_ACCURACY and res)
 
     def st_matrix_sagittal(self):
         res = self.elems[0].get_matrix_sagittal()
