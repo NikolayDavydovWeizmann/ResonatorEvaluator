@@ -306,10 +306,10 @@ class Resonator:
             new_radius = (r_transform_mx_sagittal[1, 1] * term_radius + r_transform_mx_sagittal[0, 1]) / (r_transform_mx_sagittal[1, 0] * term_radius + r_transform_mx_sagittal[0, 0])
             z_central_term_sagittal = new_radius
 
-            direct = np.array([Decimal('11'), (x_central_start - x_central_term_tangential) / (z_central_term_tangential - z_central_start).copy_abs(), (y_central_start - y_central_term_sagittal) / (z_central_term_sagittal - z_central_start).copy_abs()])
+            direct = np.array([Decimal('1'), (x_central_start - x_central_term_tangential) / (z_central_term_tangential - z_central_start).copy_abs(), (y_central_start - y_central_term_sagittal) / (z_central_term_sagittal - z_central_start).copy_abs()])
             
             if flag:
-                rotation = np.arcsin(float(C.sqrt(C.power(direct[1], Decimal('2')) + C.power(direct[2], Decimal('2')))))
+                rotation = float(C.sqrt(C.power(direct[1], Decimal('2')) + C.power(direct[2], Decimal('2'))))
                 flag = False            
             
             direct = direct / C.sqrt(C.power(direct[0], Decimal('2')) + C.power(direct[1], Decimal('2')) + C.power(direct[2], Decimal('2')))
@@ -403,16 +403,16 @@ class Resonator:
         ax.add_line(tmp_line)
         tmp_line = mlines.Line2D([0, length], [0, 0], color= 'green')
         ax.add_line(tmp_line)
-        tmp_line = mlines.Line2D([self.elems[0].radius, self.elems[0].radius - 0.05], [-1 / 6, -1 / 6], color= 'thistle')
+        tmp_line = mlines.Line2D([self.elems[0].radius, self.elems[0].radius - Decimal('0.05')], [-1 / 6, -1 / 6], color= 'thistle')
         ax.add_line(tmp_line)
-        tmp_line = mlines.Line2D([length - self.elems[-1].radius, length - self.elems[-1].radius + 0.05], [-1 / 6, -1 / 6], color= 'thistle')
+        tmp_line = mlines.Line2D([length - self.elems[-1].radius, length - self.elems[-1].radius + Decimal('0.05')], [-1 / 6, -1 / 6], color= 'thistle')
         ax.add_line(tmp_line)
-        tmp_line = mlines.Line2D([self.elems[0].radius - 0.05, self.elems[0].radius, self.elems[0].radius], [1 / 6, 1 / 6, -1 / 6], color= 'indigo')
+        tmp_line = mlines.Line2D([self.elems[0].radius - Decimal('0.05'), self.elems[0].radius, self.elems[0].radius], [1 / 6, 1 / 6, -1 / 6], color= 'indigo')
         ax.add_line(tmp_line)
-        tmp_line = mlines.Line2D([length - self.elems[-1].radius + 0.05, length - self.elems[-1].radius, length - self.elems[-1].radius], [1 / 6, 1 / 6, -1 / 6], color= 'indigo')
+        tmp_line = mlines.Line2D([length - self.elems[-1].radius + Decimal('0.05'), length - self.elems[-1].radius, length - self.elems[-1].radius], [1 / 6, 1 / 6, -1 / 6], color= 'indigo')
         ax.add_line(tmp_line)
 
-        start = 0
+        start = Decimal('0')
         stop = self.elems[1].coord
         step = (stop - start) / (number_of_steps - 1)
         x_coords = np.arange(start, stop + step, step)
@@ -421,7 +421,10 @@ class Resonator:
         tmp_line = mlines.Line2D([x_1, x_1], [1 / 12, -1 / 12], color= 'lightcoral')
         ax.add_line(tmp_line)
         z_R_1 = C.power(waist[0, 1, 1], Decimal('2')) * PI / using_lambda
-        upper_curv = waist[0, 1, 1] * C.sqrt(Decimal('1') + C.power(((x_coords - x_1) / z_R_1), Decimal('2')))
+        upper_curv = np.empty(number_of_steps, dtype= 'O')
+        lower_curv = np.empty(number_of_steps, dtype= 'O')
+        for i in range(number_of_steps):
+            upper_curv[i] = waist[0, 1, 1] * C.sqrt(Decimal('1') + C.power(((x_coords[i] - x_1) / z_R_1), Decimal('2')))
         lower_curv = -upper_curv
         plt.plot(x_coords, upper_curv, color= 'lightcoral')
         plt.plot(x_coords, lower_curv, color= 'lightcoral')
@@ -430,7 +433,8 @@ class Resonator:
         tmp_line = mlines.Line2D([x_0, x_0], [1 / 12 , -1 / 12], color= 'red')
         ax.add_line(tmp_line)
         z_R_0 = C.power(waist[0, 0, 1], Decimal('2')) * PI / using_lambda
-        upper_curv = waist[0, 0, 1] * C.sqrt(Decimal('1') + C.power(((x_coords - x_0) / z_R_0), Decimal('2')))
+        for i in range(x_coords.size):
+            upper_curv[i] = waist[0, 0, 1] * C.sqrt(Decimal('1') + C.power(((x_coords[i] - x_0) / z_R_0), Decimal('2')))
         lower_curv = -upper_curv
         plt.plot(x_coords, upper_curv, color= 'r')
         plt.plot(x_coords, lower_curv, color= 'r')
@@ -460,7 +464,8 @@ class Resonator:
             tmp_line = mlines.Line2D([x_1 + x_init, x_1 + x_init], [1 / 12, -1 / 12], color= 'lightcoral')
             ax.add_line(tmp_line)
             z_R_1 = C.power(waist[i, 1, 1], Decimal('2')) * PI / using_lambda
-            upper_curv = waist[i, 1, 1] * C.sqrt(Decimal('1') + C.power(((x_coords - x_1 - x_init) / z_R_1), Decimal('2')))
+            for j in range(x_coords.size):
+                upper_curv[j] = waist[i, 1, 1] * C.sqrt(Decimal('1') + C.power(((x_coords[j] - x_1 - x_init) / z_R_1), Decimal('2')))
             lower_curv = -upper_curv
             plt.plot(x_coords, upper_curv, color= 'lightcoral')
             plt.plot(x_coords, lower_curv, color= 'lightcoral')
@@ -469,7 +474,8 @@ class Resonator:
             tmp_line = mlines.Line2D([x_0 + x_init, x_0 + x_init], [1 / 12, -1 / 12], color= 'red')
             ax.add_line(tmp_line)
             z_R_0 = C.power(waist[i, 0, 1], Decimal('2')) * PI / using_lambda
-            upper_curv = waist[i, 0, 1] * C.sqrt(Decimal('1') + C.power(((x_coords - x_0 - x_init) / z_R_0), Decimal('2')))
+            for j in range(x_coords.size):
+                upper_curv[j] = waist[i, 0, 1] * C.sqrt(Decimal('1') + C.power(((x_coords[j] - x_0 - x_init) / z_R_0), Decimal('2')))
             lower_curv = -upper_curv
             plt.plot(x_coords, upper_curv, color= 'r')
             plt.plot(x_coords, lower_curv, color= 'r')
