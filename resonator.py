@@ -28,7 +28,7 @@ def transrorm_waist(waist2, radius, lmbd, transform_mx):
     """
     res_waist2 = 0
     res_radius = 0
-    if transform_mx[0, 1] < ZERO_ACCURACY:
+    if np.abs(transform_mx[0, 1]) < ZERO_ACCURACY:
         res_waist2 = transform_mx[0, 0] * waist2
         res_radius = 1 / (transform_mx[1, 0]/transform_mx[0, 0]
                           + transform_mx[1, 1]/transform_mx[0, 0]/radius)
@@ -268,10 +268,13 @@ class Resonator:
         return mx[0,0] * mx[1, 0] * mx[0, 1] * mx[1, 1] < ZERO_ACCURACY
 
     def get_length(self):
-        "Returns the whole length of the resonator."
+        """Returns the whole length of the resonator."""
         return self.elems[-1].coord - self.elems[0].coord
 
     def transverse_split(self):
+        """Calculates the frequency split between the transverse
+        eigen-modes of the resonator.
+        """
         mx_sagittal = self.st_matrix_sagittal()
         mx_tangential = self.st_matrix_tangential()
         delta_phy = (np.arctan2(2 * np.sqrt(-1 * mx_sagittal[1, 0]
@@ -287,9 +290,13 @@ class Resonator:
         return SPEED_OF_LIGHT / 2 / self.get_length() * delta_phy
 
     def longitude_split(self):
+        """Calculates the frequency split between the longitudinal
+        eigen-modes of the resonator.
+        """
         return np.pi * SPEED_OF_LIGHT / self.get_length()
 
     def system_scheme(self):
+        """Draws the scheme of the resonator (axis and mirrors only)."""
         fig, ax = plt.subplots()
 
         clctd_angle = 0
@@ -336,6 +343,9 @@ class Resonator:
         plt.show()
 
     def fund_lambda_choice(self, zero_lambda_approx):
+        """Searches for the fundamental mode wavelength near the given
+        zero approximation.
+        """
         zero_omega_approx = 2 * np.pi * SPEED_OF_LIGHT / zero_lambda_approx
         n_closest = np.round((zero_omega_approx - self.transverse_split())
                              / self.longitude_split())
@@ -343,6 +353,10 @@ class Resonator:
                 / (self.longitude_split() * n_closest + self.transverse_split()))
 
     def waist_search(self, zero_lambda_approx):
+        """Calculates size of waist, its position and NA in each arm of the
+        resonator. Returns [waist coord along axis from the first mirror in
+        an arm, waist size, Numerical Aperture]
+        """
         using_lambda = self.fund_lambda_choice(zero_lambda_approx)
         mx_tangential = self.st_matrix_tangential()
         mx_sagittal = self.st_matrix_sagittal()
@@ -398,9 +412,15 @@ class Resonator:
                                                      transform_mx_sagittal)
             init_waists2[1] = res_waist2
             init_curv_radius[1] = res_radius
-        return waist[1:]    # [waist coord along axis, waist, Numerical Aperture]
+        return waist[1:]    # [waist coord, waist, Numerical Aperture]
 
     def realign(self):
+        """Searches for a new axis of a mode in the resonator with
+        shifts and tilts of mirrors.
+
+        Returns first approximation of an angle of an axis turn under
+        perturbations.
+        """
         flag = True
         rotation = 0
         while not self.is_consistent():
@@ -619,6 +639,19 @@ class Resonator:
         return rotation
     
     def waist_scheme(self, zero_lambda_approx, equal_axis=False):
+        """Draws profile of a beam in the resonator.
+        
+        Arms aligned.
+        
+        For terminal mirrors center of curvature drawn. For middle
+        mirrors focal length presented. Such points denoted as '['
+        turned to coresponding elements.
+
+        Waist points denoted as '|'.
+        
+        Bright colours are for tangential case, vage colours are for
+        sagittal case.
+        """
         using_lambda = self.fund_lambda_choice(zero_lambda_approx)
         waist = self.waist_search(zero_lambda_approx)
 
