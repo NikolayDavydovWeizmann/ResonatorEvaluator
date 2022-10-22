@@ -87,15 +87,6 @@ class Mirror:
     def __lt__(self, x):
         return self.coord < x.coord
 
-    def is_terminating(self):
-        res = self.in_plane_angle < ANGLE_ACCURACY
-        res = res and self.in_plane_angle_deviation < ANGLE_ACCURACY
-        res = res and self.out_of_plane_angle_deviation < ANGLE_ACCURACY
-        res = res and self.in_plane_coord_deviation < ZERO_ACCURACY
-        res = res and self.along_axis_coord_deviation < ZERO_ACCURACY
-        res = res and self.out_of_plane_coord_deviation < ZERO_ACCURACY
-        return res
-
     def get_matrix_sagittal(self):
         """NB: Returns not a mirror matrix but the following one
         [1,                 0]
@@ -203,19 +194,19 @@ class Resonator:
         """
         res = True
         for i in range(self.num_of_mirrors):
-            res = (res and self.elems[i].in_plane_angle_deviation
+            res = (res and np.abs(self.elems[i].in_plane_angle_deviation)
                    < ANGLE_ACCURACY)
-            res = (res and self.elems[i].out_of_plane_angle_deviation
+            res = (res and np.abs(self.elems[i].out_of_plane_angle_deviation)
                    < ANGLE_ACCURACY)
-            res = (res and self.elems[i].in_plane_coord_deviation
+            res = (res and np.abs(self.elems[i].in_plane_coord_deviation)
                    < ZERO_ACCURACY)
-            res = (res and self.elems[i].along_axis_coord_deviation
+            res = (res and np.abs(self.elems[i].along_axis_coord_deviation)
                    < ZERO_ACCURACY)
-            res = (res and self.elems[i].out_of_plane_coord_deviation
+            res = (res and np.abs(self.elems[i].out_of_plane_coord_deviation)
                    < ZERO_ACCURACY)
-        return (self.elems[0].is_terminating()
-                and self.elems[-1].is_terminating() and self.elems[0].coord
-                < ZERO_ACCURACY and res)
+        return (np.abs(self.elems[0].in_plane_angle) < ANGLE_ACCURACY
+                and np.abs(self.elems[-1].in_plane_angle) < ANGLE_ACCURACY and
+                np.abs(self.elems[0].coord) < ZERO_ACCURACY and res)
 
     def st_matrix_sagittal(self):
         """Returns the optical matrix of the light trip from first
