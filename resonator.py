@@ -1,3 +1,11 @@
+"""This module provides mechanisms for evaluation of properties of
+multi-mirror resonators within the paraxial approximation.
+
+All methods based on ABCD - matrixes. Originally all formulas described
+in "Optical Resonators and Laser Beams" by Yuri Anan'ev ("Оптические
+резонаторы и лазерные пучки", Юрий Алексеевич Ананьев)
+"""
+
 __version__ = '0.1'
 __author__ = 'Nikolay Davydov'
 
@@ -15,6 +23,9 @@ number_of_plots_G = 0
 
 
 def transrorm_waist(waist2, radius, lmbd, transform_mx):
+    """Evaluates transformation of width and radius of curvature of a
+    beam in an optical system with a given matrix.
+    """
     res_waist2 = 0
     res_radius = 0
     if transform_mx[0, 1] < ZERO_ACCURACY:
@@ -32,6 +43,16 @@ def transrorm_waist(waist2, radius, lmbd, transform_mx):
 
 
 def quadratic_solver(A, B, C):
+    """Simple quadratic equation solver.
+    
+    Returns [float, nan], if an equation is linear (A = 0).
+
+    Returns [float, float], if an equation has solutions in real
+    numbers (D >= 0).
+
+    Returns [nan, nan], if an equation has no solutions in real
+    numbers (D < 0).
+    """
     if np.abs(A) < ZERO_ACCURACY:
         return np.array([-1 * C / B, nan])
     D = B*B - 4*A*C
@@ -44,6 +65,7 @@ def quadratic_solver(A, B, C):
 
 
 class Mirror:
+    """The class contains all necessary information about a mirror."""
     def __init__(self, coord, in_plane_angle, radius,
                  in_plane_angle_deviation=0,
                  out_of_plane_angle_deviation=0,
@@ -75,10 +97,24 @@ class Mirror:
         return res
 
     def get_matrix_sagittal(self):
+        """NB: Returns not a mirror matrix but the following one
+        [1,                 0]
+        [-1 / 2 / f_sag,    1].     f_sag = R / 2 / cos(rotating_angle)
+ 
+        To get a matrix of a mirror multiply this matrix by itself
+        once.
+        """
         return np.matrix([[1, 0],
                           [-1 * np.cos(self.in_plane_angle) / self.radius, 1]])
 
     def get_matrix_tangential(self):
+        """NB: Returns not a mirror matrix but the following one
+        [1,                 0]
+        [-1 / 2 / f_tg,     1].     f_tg = R / 2 * cos(rotating_angle)
+ 
+        To get a matrix of a mirror multiply this matrix by itself
+        once.
+        """
         return np.matrix([[1, 0],
                           [-1 / np.cos(self.in_plane_angle) / self.radius, 1]])
 
@@ -104,6 +140,9 @@ class Resonator:
         self.refresh()
         
     def refresh(self):
+        """Updates coordinates of mirror curvature centres for all
+        mirrors in the system.
+        """
         tmp_coord = np.array([0, 0, 0])
         tmp_angle_rad = (self.elems[0].in_plane_angle
                          + self.elems[0].in_plane_angle_deviation)
@@ -157,14 +196,11 @@ class Resonator:
                                             + self.elems[i].in_plane_coord_deviation,
                                             tmp_center[2]
                                             + self.elems[i].out_of_plane_coord_deviation)
-            self.elems[i].terminating = (np.abs(self.elems[i].in_plane_angle)
-                                         < ANGLE_ACCURACY
-                                         and np.abs(self.elems[i].in_plane_angle_deviation)
-                                         < ANGLE_ACCURACY
-                                         and np.abs(self.elems[i].out_of_plane_angle_deviation)
-                                         < ANGLE_ACCURACY)
 
     def is_consistent(self):
+        """Checks if all deviations in system corrected and terminal
+        mirrors have no tilts.
+        """
         res = True
         for i in range(self.num_of_mirrors):
             res = (res and self.elems[i].in_plane_angle_deviation
@@ -182,6 +218,12 @@ class Resonator:
                 < ZERO_ACCURACY and res)
 
     def st_matrix_sagittal(self):
+        """Returns the optical matrix of the light trip from first
+        mirror to the last one (single trip, not roound trip) for a
+        sagittal coordinate. The first and the last mirrors represented
+        as a lense and a flat mirror. Single trip matrix is calculated
+        from FLAT mirror to FLAT mirror.
+        """
         res = self.elems[0].get_matrix_sagittal()
         for i in range(1, self.num_of_mirrors - 1):
             res = np.matmul(np.matrix([[1, (self.elems[i].coord
@@ -194,6 +236,12 @@ class Resonator:
         return res
 
     def st_matrix_tangential(self):
+        """Returns the optical matrix of the light trip from first
+        mirror to the last one (single trip, not roound trip) for a
+        tangential coordinate. The first and the last mirrors
+        represented as a lense and a flat mirror. Single trip matrix
+        is calculated from FLAT mirror to FLAT mirror.
+        """
         res = self.elems[0].get_matrix_tangential()
         for i in range(1, self.num_of_mirrors - 1):
             res = np.matmul(np.matrix([[1, (self.elems[i].coord
@@ -206,14 +254,21 @@ class Resonator:
         return res
 
     def is_g_stable_sagittal(self):
+        """Checks if the resonator is geometricaly (g) stable in
+        sagittal plane.
+        """
         mx = self.st_matrix_sagittal()
         return mx[0,0] * mx[1, 0] * mx[0, 1] * mx[1, 1] < ZERO_ACCURACY
 
     def is_g_stable_tangential(self):
+        """Checks if the resonator is geometricaly (g) stable in
+        tangential plane.
+        """
         mx = self.st_matrix_tangential()
         return mx[0,0] * mx[1, 0] * mx[0, 1] * mx[1, 1] < ZERO_ACCURACY
 
     def get_length(self):
+        "Returns the whole length of the resonator."
         return self.elems[-1].coord - self.elems[0].coord
 
     def transverse_split(self):
