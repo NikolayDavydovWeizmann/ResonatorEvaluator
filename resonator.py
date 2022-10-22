@@ -6,7 +6,7 @@ in "Optical Resonators and Laser Beams" by Yuri Anan'ev ("Оптические
 резонаторы и лазерные пучки", Юрий Алексеевич Ананьев)
 """
 
-__version__ = '0.1'
+__version__ = '0.2'
 __author__ = 'Nikolay Davydov'
 
 from math import isnan, nan
