@@ -341,12 +341,11 @@ class Resonator:
         return (2 * np.pi * SPEED_OF_LIGHT
                 / (self.longitude_split() * n_closest + self.transverse_split()))
 
-    def waist_search(self, zero_lambda_approx):
+    def waist_search(self, using_lambda):
         """Calculates size of waist, its position and NA in each arm of the
         resonator. Returns [waist coord along axis from the first mirror in
         an arm, waist size, Numerical Aperture]
         """
-        using_lambda = self.fund_lambda_choice(zero_lambda_approx)
         mx_tangential = self.st_matrix_tangential()
         mx_sagittal = self.st_matrix_sagittal()
         init_waists2 = np.array([using_lambda / np.pi
@@ -633,7 +632,7 @@ class Resonator:
             self.refresh()
         return rotation
     
-    def waist_scheme(self, zero_lambda_approx, equal_axis=False):
+    def waist_scheme(self, using_lambda, equal_axis=False):
         """Draws profile of a beam in the resonator.
         
         Arms aligned.
@@ -647,8 +646,7 @@ class Resonator:
         Bright colours are for tangential case, vage colours are for
         sagittal case.
         """
-        using_lambda = self.fund_lambda_choice(zero_lambda_approx)
-        waist = self.waist_search(zero_lambda_approx)
+        waist = self.waist_search(using_lambda)
 
         number_of_steps = 10000
 
