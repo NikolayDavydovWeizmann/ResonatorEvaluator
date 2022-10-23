@@ -138,9 +138,11 @@ class Resonator:
         tmp_angle_rad = (self.elems[0].in_plane_angle
                          + self.elems[0].in_plane_angle_deviation)
         self.elems[0].set_central_coord(np.cos(tmp_angle_rad)
+                                        *np.cos(self.elems[0].out_of_plane_angle_deviation)
                                         *self.elems[0].radius
                                         + self.elems[0].along_axis_coord_deviation,
                                         np.sin(tmp_angle_rad)
+                                        *np.cos(self.elems[0].out_of_plane_angle_deviation)
                                         *self.elems[0].radius
                                         + self.elems[0].in_plane_coord_deviation,
                                         np.sin(self.elems[0].out_of_plane_angle_deviation)
@@ -152,21 +154,19 @@ class Resonator:
             tmp_coord = (tmp_coord
                          + (self.elems[i].coord - self.elems[i - 1].coord)
                          *tmp_diraction)
-            tmp_diraction_cr = np.array([-1*tmp_diraction[0]
+            tmp_diraction_cr = np.array([(-1*tmp_diraction[0]
                                          *np.cos(tmp_angle_rad
                                          + self.elems[i].in_plane_angle_deviation)
                                          + tmp_diraction[1]
                                          *np.sin(tmp_angle_rad
-                                         + self.elems[i].in_plane_angle_deviation),
+                                         + self.elems[i].in_plane_angle_deviation))
+                                         *np.cos(self.elems[i].out_of_plane_coord_deviation),
                                          -1 * (tmp_diraction[0]*np.sin(tmp_angle_rad
                                          + self.elems[i].in_plane_angle_deviation)
                                          + tmp_diraction[1]*np.cos(tmp_angle_rad
-                                         + self.elems[i].in_plane_angle_deviation)),
+                                         + self.elems[i].in_plane_angle_deviation))
+                                         *np.cos(self.elems[i].out_of_plane_coord_deviation),
                                          np.sin(self.elems[i].out_of_plane_coord_deviation)])
-            tmp_diraction_cr = (tmp_diraction_cr
-                                / np.sqrt(tmp_diraction_cr[0]**2
-                                + tmp_diraction_cr[1]**2
-                                + tmp_diraction_cr[2]**2))
             tmp_center = (tmp_coord + tmp_diraction_cr*self.elems[i].radius
                           + tmp_diraction
                           *self.elems[0].along_axis_coord_deviation)
@@ -183,10 +183,8 @@ class Resonator:
                                             *np.sin(2 * tmp_angle_rad)
                                             + tmp_diraction[1]
                                             *np.cos(2 * tmp_angle_rad), 0]))
-            self.elems[i].set_central_coord(tmp_center[0], tmp_center[1]
-                                            + self.elems[i].in_plane_coord_deviation,
-                                            tmp_center[2]
-                                            + self.elems[i].out_of_plane_coord_deviation)
+            self.elems[i].set_central_coord(tmp_center[0], tmp_center[1],
+                                            tmp_center[2])
 
     def is_consistent(self):
         """Checks if all deviations in system corrected and terminal
@@ -249,14 +247,14 @@ class Resonator:
         sagittal plane.
         """
         mx = self.st_matrix_sagittal()
-        return mx[0,0] * mx[1, 0] * mx[0, 1] * mx[1, 1] < ZERO_ACCURACY
+        return mx[0,0] * mx[1, 0] * mx[0, 1] * mx[1, 1] < -1 * ZERO_ACCURACY
 
     def is_g_stable_tangential(self):
         """Checks if the resonator is geometricaly (g) stable in
         tangential plane.
         """
         mx = self.st_matrix_tangential()
-        return mx[0,0] * mx[1, 0] * mx[0, 1] * mx[1, 1] < ZERO_ACCURACY
+        return mx[0,0] * mx[1, 0] * mx[0, 1] * mx[1, 1] < -1 * ZERO_ACCURACY
 
     def get_length(self):
         """Returns the whole length of the resonator."""
@@ -409,8 +407,11 @@ class Resonator:
         """Searches for a new axis of a mode in the resonator with
         shifts and tilts of mirrors.
 
-        Returns first approximation of an angle of an axis turn under
-        perturbations.
+        Returns the first approximation of an angle of an axis turn
+        under perturbations.
+
+        NB:FOR OUT OF PLANE VIALATIONS: work only for axis rotation, cannot actually
+        find the proper mode axis.
         """
         flag = True
         rotation = 0
@@ -466,8 +467,9 @@ class Resonator:
 
             x_central_term_tangential = (-1 * (-1)**self.num_of_mirrors
                                          * (self.elems[-1].radius
-                                         * np.sin(self.elems[-1].in_plane_angle
+                                         *np.sin(self.elems[-1].in_plane_angle
                                          + self.elems[-1].in_plane_angle_deviation)
+                                         *np.cos(self.elems[-1].out_of_plane_angle_deviation)
                                          + self.elems[-1].in_plane_coord_deviation)
                                          / (r_transform_mx_tangential[1, 0]
                                          *term_radius
@@ -476,11 +478,13 @@ class Resonator:
                           + r_transform_mx_tangential[0, 1])
                           / (r_transform_mx_tangential[1, 0]*term_radius
                           + r_transform_mx_tangential[0, 0]))
-            z_central_term_tangential = new_radius
+            z_central_term_tangential = np.sqrt(new_radius**2 - x_central_term_tangential**2)
 
             y_central_term_sagittal = (-1 * (-1)**self.num_of_mirrors
                                        * (self.elems[-1].radius
                                        *np.sin(self.elems[-1].out_of_plane_angle_deviation)
+                                       *np.cos(self.elems[-1].in_plane_angle
+                                       + self.elems[-1].in_plane_angle_deviation)
                                        + self.elems[-1].out_of_plane_coord_deviation)
                                        / (r_transform_mx_sagittal[1, 0]
                                        *term_radius
@@ -489,7 +493,7 @@ class Resonator:
                           + r_transform_mx_sagittal[0, 1])
                           / (r_transform_mx_sagittal[1, 0]*term_radius
                           + r_transform_mx_sagittal[0, 0]))
-            z_central_term_sagittal = new_radius
+            z_central_term_sagittal = np.sqrt(new_radius**2 - y_central_term_sagittal**2)
 
             direct = np.array([1, (x_central_start - x_central_term_tangential)
                               / np.abs(z_central_term_tangential - z_central_start),
@@ -497,7 +501,7 @@ class Resonator:
                               / np.abs(z_central_term_sagittal - z_central_start)])
             
             if flag:
-                rotation = float(np.sqrt(direct[1]**2 + direct[2]**2))
+                rotation = np.sqrt(direct[1]**2 + direct[2]**2)
                 flag = False            
             
             direct = direct / np.sqrt(direct[0]**2
@@ -507,9 +511,9 @@ class Resonator:
             start_coord = np.array([z_central_start, x_central_start,
                                     y_central_start])
 
-            z_solutions = np.array([0, 0])
-            x_solutions = np.array([0, 0])
-            y_solutions = np.array([0, 0])
+            z_solutions = np.zeros(2)
+            x_solutions = np.zeros(2)
+            y_solutions = np.zeros(2)
 
             for i in range(1, self.num_of_mirrors):
                 central_coord = self.elems[i].get_central_coord()
@@ -543,7 +547,7 @@ class Resonator:
                                   * (start_coord[1] - central_coord[1])**2)
                         y_solutions = quadratic_solver(A_coef, B_coef, C_coef)
                         if isnan(y_solutions[0]):
-                            raise Exception("Misnp.sing mirror")
+                            raise Exception("Missing mirror")
                         z_solutions = (start_coord[0]*np.array([1, 1])
                                        + direct[0]/direct[2]
                                        *(y_solutions - start_coord[2]
@@ -567,7 +571,7 @@ class Resonator:
                               - direct[1]**2 * self.elems[i].radius**2)
                     x_solutions = quadratic_solver(A_coef, B_coef, C_coef)
                     if isnan(x_solutions[0]):
-                        raise Exception("Misnp.sing mirror")
+                        raise Exception("Missing mirror")
                     z_solutions = (start_coord[0]*np.array([1, 1])
                                    + direct[0]/direct[1]*(x_solutions
                                    - start_coord[1]*np.array([1, 1])))
