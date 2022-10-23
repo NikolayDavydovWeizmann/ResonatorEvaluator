@@ -17,4 +17,5 @@ chi1 = (np.cos(ANGLE) - chi2 * R_2 / (2 * chi2 * R_3 + R_2)) * 0.99999    #5 / 6
 res1 = rs.Resonator(3, rs.Mirror(0, 0, 1 - R_2 / 2 / chi1), rs.Mirror(1, ANGLE, R_2), rs.Mirror(1 + R_3 + R_2 / 2 / chi2, 0, R_3))
 res1.waist_scheme(FUND_WAVE)
 print(res1.waist_search(1064 * 10 ** -7))
+plt.show()
 
