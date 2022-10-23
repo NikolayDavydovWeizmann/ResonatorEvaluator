@@ -169,12 +169,12 @@ class Resonator:
                                          np.sin(self.elems[i].out_of_plane_coord_deviation)])
             tmp_center = (tmp_coord + tmp_diraction_cr*self.elems[i].radius
                           + tmp_diraction
-                          *self.elems[0].along_axis_coord_deviation)
+                          *self.elems[i].along_axis_coord_deviation)
             tmp_center[0] += (-1 * tmp_diraction[1]
-                              * self.elems[0].in_plane_coord_deviation)
-            tmp_center[1] += (tmp_diraction[0]
-                              * self.elems[0].in_plane_coord_deviation)
-            tmp_center[2] +=  self.elems[0].out_of_plane_angle_deviation
+                              * self.elems[i].in_plane_coord_deviation)
+            tmp_center[1] += (tmp_diraction[i]
+                              * self.elems[i].in_plane_coord_deviation)
+            tmp_center[2] +=  self.elems[i].out_of_plane_angle_deviation
             tmp_diraction = (-1 * np.array([tmp_diraction[0]
                                             *np.cos(2 * tmp_angle_rad)
                                             - tmp_diraction[1]
@@ -461,6 +461,7 @@ class Resonator:
             self.elems[0].out_of_plane_angle_deviation = 0
             self.elems[0].in_plane_coord_deviation = 0
             self.elems[0].out_of_plane_coord_deviation = 0
+            self.elems[0].along_axis_coord_deviation = 0
 
             term_radius = -1 * self.elems[-1].radius
 
@@ -524,7 +525,7 @@ class Resonator:
                         if ((x_solutions[0] - central_coord[1])**2
                             + (y_solutions[0] - central_coord[2])**2
                             > self.elems[i].radius**2):
-                            raise Exception("Misnp.sing mirror")
+                            raise Exception("Missing mirror")
                         z_diff = np.sqrt(self.elems[i].radius**2
                                          - (x_solutions[0] - central_coord[1])**2
                                          - (y_solutions[0] - central_coord[2])**2)
@@ -629,6 +630,7 @@ class Resonator:
                 self.elems[i].out_of_plane_angle_deviation = 0
                 self.elems[i].in_plane_coord_deviation = 0
                 self.elems[i].out_of_plane_coord_deviation = 0
+                self.elems[i].along_axis_coord_deviation = 0
             self.refresh()
         return rotation
     
