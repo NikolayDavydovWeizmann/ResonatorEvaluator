@@ -501,8 +501,9 @@ class Resonator:
                               / np.abs(z_central_term_sagittal - z_central_start)])
             
             if flag:
-                rotation = np.sqrt(direct[1]**2 + direct[2]**2)
-                flag = False            
+                rotation = np.arcsin(np.sqrt(direct[1]**2 + direct[2]**2))
+                if rotation > ANGLE_ACCURACY:
+                    flag = False            
             
             direct = direct / np.sqrt(direct[0]**2
                                       + direct[1]**2
