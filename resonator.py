@@ -522,10 +522,6 @@ class Resonator:
                     if np.abs(direct[2]) < ZERO_ACCURACY:
                         x_solutions = np.array([start_coord[1], start_coord[1]])
                         y_solutions = np.array([start_coord[2], start_coord[2]])
-                        if ((x_solutions[0] - central_coord[1])**2
-                            + (y_solutions[0] - central_coord[2])**2
-                            > self.elems[i].radius**2):
-                            raise Exception("Missing mirror")
                         z_diff = np.sqrt(self.elems[i].radius**2
                                          - (x_solutions[0] - central_coord[1])**2
                                          - (y_solutions[0] - central_coord[2])**2)
@@ -546,8 +542,6 @@ class Resonator:
                                   + direct[2]**2
                                   * (start_coord[1] - central_coord[1])**2)
                         y_solutions = quadratic_solver(A_coef, B_coef, C_coef)
-                        if isnan(y_solutions[0]):
-                            raise Exception("Missing mirror")
                         z_solutions = (start_coord[0]*np.array([1, 1])
                                        + direct[0]/direct[2]
                                        *(y_solutions - start_coord[2]
@@ -570,8 +564,6 @@ class Resonator:
                               - direct[1]*central_coord[0])**2
                               - direct[1]**2 * self.elems[i].radius**2)
                     x_solutions = quadratic_solver(A_coef, B_coef, C_coef)
-                    if isnan(x_solutions[0]):
-                        raise Exception("Missing mirror")
                     z_solutions = (start_coord[0]*np.array([1, 1])
                                    + direct[0]/direct[1]*(x_solutions
                                    - start_coord[1]*np.array([1, 1])))
@@ -693,11 +685,8 @@ class Resonator:
                                  color='lightcoral')
         ax.add_line(tmp_line)
         z_R_1 = waist[0, 1, 1]**2 * np.pi / using_lambda
-        upper_curv = np.empty(number_of_steps)
-        lower_curv = np.empty(number_of_steps)
-        for i in range(number_of_steps):
-            upper_curv[i] = (waist[0, 1, 1]
-                             * np.sqrt(1 + ((x_coords[i] - x_1) / z_R_1)**2))
+        upper_curv = (waist[0, 1, 1]
+                      * np.sqrt(1 + ((x_coords - x_1) / z_R_1)**2))
         lower_curv = -upper_curv
         plt.plot(x_coords, upper_curv, color='lightcoral')
         plt.plot(x_coords, lower_curv, color='lightcoral')
@@ -706,9 +695,8 @@ class Resonator:
         tmp_line = mlines.Line2D([x_0, x_0], [1 / 12 , -1 / 12], color='red')
         ax.add_line(tmp_line)
         z_R_0 = waist[0, 0, 1] ** 2 * np.pi / using_lambda
-        for i in range(x_coords.size):
-            upper_curv[i] = (waist[0, 0, 1]
-                             * np.sqrt(1 + ((x_coords[i] - x_0) / z_R_0)**2))
+        upper_curv = (waist[0, 0, 1]
+                      * np.sqrt(1 + ((x_coords - x_0) / z_R_0)**2))
         lower_curv = -upper_curv
         plt.plot(x_coords, upper_curv, color='r')
         plt.plot(x_coords, lower_curv, color='r')
@@ -753,9 +741,8 @@ class Resonator:
                                      [1 / 12, -1 / 12], color='lightcoral')
             ax.add_line(tmp_line)
             z_R_1 = waist[i, 1, 1]**2 * np.pi / using_lambda
-            for j in range(x_coords.size):
-                upper_curv[j] = (waist[i, 1, 1] * np.sqrt(1
-                                 + ((x_coords[j] - x_1 - x_init) / z_R_1)**2))
+            upper_curv = (waist[i, 1, 1] * np.sqrt(1
+                          + ((x_coords - x_1 - x_init) / z_R_1)**2))
             lower_curv = -upper_curv
             plt.plot(x_coords, upper_curv, color='lightcoral')
             plt.plot(x_coords, lower_curv, color='lightcoral')
@@ -765,9 +752,8 @@ class Resonator:
                                      [1 / 12, -1 / 12], color='red')
             ax.add_line(tmp_line)
             z_R_0 = waist[i, 0, 1] ** 2 * np.pi / using_lambda
-            for j in range(x_coords.size):
-                upper_curv[j] = (waist[i, 0, 1] * np.sqrt(1
-                                 + ((x_coords[j] - x_0 - x_init) / z_R_0)**2))
+            upper_curv = (waist[i, 0, 1] * np.sqrt(1
+                          + ((x_coords - x_0 - x_init) / z_R_0)**2))
             lower_curv = -upper_curv
             plt.plot(x_coords, upper_curv, color='r')
             plt.plot(x_coords, lower_curv, color='r')
